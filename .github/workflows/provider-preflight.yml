@@ -1,0 +1,82 @@
+name: Provider credential preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-provider-credentials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      STAY22_API_KEY: ${{ secrets.STAY22_API_KEY }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      ELEVENLABS_AGENT_ID: ${{ secrets.ELEVENLABS_AGENT_ID }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Verify required secrets exist
+        shell: bash
+        run: |
+          missing=0
+          for name in STAY22_API_KEY ELEVENLABS_API_KEY ELEVENLABS_AGENT_ID TAVILY_API_KEY OPENAI_API_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::$name is not configured"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Verify Stay22
+        shell: bash
+        run: |
+          checkin="$(date -u -d '+1 day' +%F)"
+          checkout="$(date -u -d '+2 days' +%F)"
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 15 \
+            --header "X-API-KEY: $STAY22_API_KEY" \
+            --get 'https://api.stay22.com/v2/accommodations' \
+            --data-urlencode 'address=John F. Kennedy International Airport' \
+            --data-urlencode "checkin=$checkin" \
+            --data-urlencode "checkout=$checkout" \
+            --data-urlencode 'adults=2' \
+            --data-urlencode 'rooms=1' \
+            --data-urlencode 'pageSize=1')"
+          echo "Stay22: HTTP $status"
+          [[ "$status" == "200" ]]
+
+      - name: Verify ElevenLabs private agent session
+        shell: bash
+        run: |
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 15 \
+            --header "xi-api-key: $ELEVENLABS_API_KEY" \
+            --get 'https://api.elevenlabs.io/v1/convai/conversation/get-signed-url' \
+            --data-urlencode "agent_id=$ELEVENLABS_AGENT_ID")"
+          echo "ElevenLabs: HTTP $status"
+          [[ "$status" == "200" ]]
+
+      - name: Verify Tavily
+        shell: bash
+        run: |
+          payload="$(jq -cn --arg key "$TAVILY_API_KEY" \
+            '{api_key:$key,query:"JFK Airport official website",max_results:1}')"
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 15 \
+            --request POST 'https://api.tavily.com/search' \
+            --header 'Content-Type: application/json' \
+            --data "$payload")"
+          echo "Tavily: HTTP $status"
+          [[ "$status" == "200" ]]
+
+      - name: Verify OpenAI
+        shell: bash
+        run: |
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 15 \
+            --header "Authorization: Bearer $OPENAI_API_KEY" \
+            'https://api.openai.com/v1/models')"
+          echo "OpenAI: HTTP $status"
+          [[ "$status" == "200" ]]
