@@ -1,0 +1,98 @@
+import { tripRequestSchema, type TripRequest } from "@/schemas/trip-request";
+import type { ExtractRequest, ExtractionResult } from "./contracts";
+
+const DAY_MS = 86_400_000;
+
+function nextIsoDate(date: string, days = 1): string {
+  return new Date(`${date}T12:00:00.000Z`).getTime() + days * DAY_MS > 0
+    ? new Date(new Date(`${date}T12:00:00.000Z`).getTime() + days * DAY_MS)
+        .toISOString()
+        .slice(0, 10)
+    : date;
+}
+
+function numberBefore(text: string, noun: string, fallback: number): number {
+  const match = text.match(new RegExp(`(\\d+)\\s+${noun}`, "i"));
+  return match ? Number(match[1]) : fallback;
+}
+
+function budgetFrom(text: string): number | undefined {
+  const match = text.match(/(?:under|below|budget(?:\s+of)?|keep(?:\s+the)?\s+total\s+under)\s*\$?([\d,]+)/i);
+  return match ? Number(match[1].replaceAll(",", "")) : undefined;
+}
+
+function targetAreaFrom(text: string): string {
+  if (/\bJFK\b|John F\. Kennedy/i.test(text)) return "JFK Airport, New York";
+  const near = text.match(/near\s+(?:the\s+)?([^,.]+?)(?:\s+for\s+\$|\s+under\s+\$|[,.]|$)/i);
+  return near?.[1]?.trim() || "JFK Airport, New York";
+}
+
+export function deterministicExtract(input: ExtractRequest): ExtractionResult {
+  const text = input.transcript.trim();
+  const referenceDate = input.referenceDate ?? new Date().toISOString().slice(0, 10);
+  const checkin = referenceDate;
+  const checkout = nextIsoDate(checkin);
+  const hardBudgetTotal = budgetFrom(text);
+  const adults = numberBefore(text, "adults?", /two adults/i.test(text) ? 2 : 1);
+  const children = numberBefore(text, "(?:children|child)", /one child/i.test(text) ? 1 : 0);
+  const rooms = numberBefore(text, "rooms?", /two rooms/i.test(text) ? 2 : 1);
+  const mustHaves: string[] = [];
+  const preferences: string[] = [];
+  const uncertainties: string[] = [];
+
+  if (/late check[ -]?in/i.test(text)) mustHaves.push("Late check-in");
+  if (/cannot manage stairs|no stairs|step-free/i.test(text)) {
+    mustHaves.push("Step-free access");
+    uncertainties.push("Accessibility has not been verified by a source");
+  }
+  const minutes = text.match(/within\s+(\d+)\s+minutes?/i)?.[1];
+  if (minutes) preferences.push(`Within ${minutes} minutes of the target area`);
+  if (/food after\s+10|food nearby|late[- ]night food/i.test(text)) {
+    preferences.push("Food nearby after 10 PM");
+  }
+  if (/minimi[sz]e transfers/i.test(text)) preferences.push("Minimize transfers");
+  if (!hardBudgetTotal) uncertainties.push("Hard total budget was not provided");
+  if (!/tonight|today|\d{4}-\d{2}-\d{2}/i.test(text)) {
+    uncertainties.push("Check-in date defaults to the reference date and needs confirmation");
+  }
+
+  const cancelled = /cancel(?:led|ed|lation)/i.test(text);
+  const missed = /missed (?:our |a )?connection/i.test(text);
+  const disruptionSummary = cancelled
+    ? "Flight cancelled"
+    : missed
+      ? "Missed connection"
+      : "Urgent lodging needed after a travel disruption";
+
+  const candidate: TripRequest = {
+    mode: input.mode,
+    currentLocation: /\bJFK\b/i.test(text) ? "JFK Airport, New York" : undefined,
+    targetArea: targetAreaFrom(text),
+    checkin,
+    checkout,
+    adults,
+    children,
+    rooms,
+    currency: "USD",
+    hardBudgetTotal,
+    mustHaves,
+    preferences,
+    uncertainties,
+    ...(input.mode === "recovery"
+      ? {
+          disruption: {
+            summary: disruptionSummary,
+            urgency: /tonight|today|cancel|missed/i.test(text) ? ("same-day" as const) : ("flexible" as const),
+          },
+        }
+      : { event: { venue: targetAreaFrom(text) } }),
+  };
+
+  const tripRequest = tripRequestSchema.parse(candidate);
+  const missingFields = [
+    ...(hardBudgetTotal ? [] : ["hardBudgetTotal"]),
+    ...(!/tonight|today|\d{4}-\d{2}-\d{2}/i.test(text) ? ["checkin"] : []),
+  ];
+
+  return { tripRequest, missingFields, extractionMode: "demo" };
+}
