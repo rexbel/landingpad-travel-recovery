@@ -6,7 +6,7 @@ Run `npm run preflight` after adding server credentials to `.env.local`. The com
 
 | Provider | Account created | Credential stored locally | Connection verified | Current state |
 |---|---:|---:|---:|---|
-| Stay22 | Pending | Pending (optional for demo) | Keyless demo passed: dated JFK search returned HTTP 200 | Begin account setup |
+| Stay22 | Pending | Pending (optional for demo) | Keyless demo passed: dated JFK search returned HTTP 200 | Registration ready; user action required |
 | ElevenLabs | Pending | Pending | Pending | Not started |
 | Tavily | Pending | Pending | Pending | Not started |
 | OpenAI API | Pending | Pending | Pending | Not started |
