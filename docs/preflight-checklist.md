@@ -6,10 +6,10 @@ Run `npm run preflight` after adding server credentials to `.env.local`. The com
 
 | Provider | Account created | Credential stored locally | Connection verified | Current state |
 |---|---:|---:|---:|---|
-| Stay22 | Pending | Pending (optional for demo) | Keyless demo passed: dated JFK search returned HTTP 200 | Registration ready; user action required |
-| ElevenLabs | Pending | Pending | Pending | Not started |
-| Tavily | Pending | Pending | Pending | Not started |
-| OpenAI API | Pending | Pending | Pending | Not started |
+| Stay22 | Complete; email verified | Complete (`STAY22_API_KEY` in ignored `.env.local`) | Complete; authenticated dated JFK search returned HTTP 200 | Ready |
+| ElevenLabs | Complete | Complete (`ELEVENLABS_API_KEY` and `ELEVENLABS_AGENT_ID` in ignored `.env.local`) | Complete; user endpoint and private signed conversation URL returned HTTP 200 | Ready |
+| Tavily | Complete | Complete (`TAVILY_API_KEY` in ignored `.env.local`) | Complete; narrow JFK search returned HTTP 200 | Ready; dedicated development key capped at 500 credits/month |
+| OpenAI API | Complete; dedicated `LandingPad` project | Complete (`OPENAI_API_KEY` in ignored `.env.local`) | Complete; model listing and Responses API returned HTTP 200 | Ready; $10 enforced monthly limit, 50%/80%/100% alerts, and auto-reload disabled |
 
 Update a cell to `Complete` only after that exact step is confirmed. A keyless demo request verifies Stay22's demo endpoint, but it does not prove that an account exists or that an account token works.
 
@@ -33,20 +33,26 @@ Update a cell to `Complete` only after that exact step is confirmed. A keyless d
 
 ### ElevenLabs
 
-- Private agent exists and the configured agent ID matches it.
-- Server route returns a short-lived signed conversation URL.
+- Private `LandingPad` agent exists, requires authentication, and the configured agent ID matches it.
+- Restricted `landingpad-hackathon-2026` key expires September 7, 2026 and grants only ElevenAgents write plus user-access verification.
+- Private signed conversation URL request returned HTTP 200.
 - Browser receives no API key.
 - Denied microphone permission and provider failure preserve the typed request.
 
 ### Tavily
 
+- Dedicated `landingpad-hackathon-2026` development key exists with a 500-credit monthly cap.
 - A single narrow JFK local-context query succeeds.
 - Every displayed claim retains a source URL.
 - Missing key, timeout, or empty results do not block stay ranking.
 
 ### OpenAI
 
-- The API project has separate billing and spend controls.
+- Dedicated `LandingPad` API project exists with separate billing and spend controls.
+- The project has a $10 enforced monthly spend limit with alerts at 50%, 80%, and 100%; auto-reload is disabled.
+- Restricted `landingpad-hackathon-2026` project key remains active until manually revoked and grants model listing plus model-capability requests only.
+- The key is stored as `OPENAI_API_KEY` in ignored `.env.local` with `0600` permissions.
+- Model listing and a `gpt-5.6` Responses API request returned HTTP 200.
 - The configured model can return a validated `TripRequest`.
 - Invalid structured output retries once, then opens the deterministic editable form.
 - No model output can change a hard eligibility decision without explicit user approval.
@@ -54,9 +60,10 @@ Update a cell to `Complete` only after that exact step is confirmed. A keyless d
 ## GitHub
 
 - Local repository initialized: complete.
+- Canonical local checkout: complete (`/workspace/scratch/6a27ac251a74/landingpad`).
 - Shared contract commit on `main`: complete (`fa72763`).
 - Remote repository created and verified: complete (`rexbel/landingpad-travel-recovery`).
 - Connected GitHub app access: complete (admin and push permission confirmed).
-- Pre-hackathon planning/configuration initialization: in progress through the connected GitHub app.
+- Pre-hackathon planning/configuration initialization: complete through the connected GitHub app.
 - Local `origin` attachment and push: pending because the required authenticated GitHub CLI is unavailable in this workspace.
 - Feature implementation and feature-code publication: paused until explicitly restarted.
