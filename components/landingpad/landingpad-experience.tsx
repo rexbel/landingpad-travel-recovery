@@ -82,6 +82,13 @@ function apiMode(value: unknown): string | undefined {
   return "mode" in value && typeof value.mode === "string" ? value.mode : undefined;
 }
 
+function apiErrorMessage(value: unknown): string | undefined {
+  if (!value || typeof value !== "object" || !("error" in value)) return undefined;
+  const error = value.error;
+  if (!error || typeof error !== "object" || !("message" in error)) return undefined;
+  return typeof error.message === "string" ? error.message : undefined;
+}
+
 function isHandoffResult(value: unknown): value is HandoffResult {
   return Boolean(value && typeof value === "object" && "summary" in value && "requiresApproval" in value);
 }
@@ -214,12 +221,13 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     setMicPermission("granted");
     try {
       const response = await fetch("/api/voice/signed-url?appMode=active", { cache: "no-store" });
-      const payload = apiData(await response.json());
+      const raw = await response.json();
+      const payload = apiData(raw);
       const signedUrl =
         payload && typeof payload === "object" && "signedUrl" in payload && typeof payload.signedUrl === "string"
           ? payload.signedUrl
           : undefined;
-      if (!response.ok || !signedUrl) throw new Error("Voice unavailable");
+      if (!response.ok || !signedUrl) throw new Error(apiErrorMessage(raw) ?? "Voice unavailable");
       setTranscript("");
       conversation.startSession({
         signedUrl,
@@ -230,8 +238,9 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
           },
         },
       });
-    } catch {
-      setNotice("Voice is unavailable right now. Your request is preserved—continue with text.");
+    } catch (error) {
+      const specific = error instanceof Error && error.message !== "Voice unavailable" ? error.message : undefined;
+      setNotice(specific ?? "Voice is unavailable right now. Your request is preserved—continue with text.");
     } finally {
       setIsRequestingMic(false);
     }
@@ -600,42 +609,8 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
             {aviationContext?.mode === "unavailable" && (
               <p className="lp-aviation-skip">Historical aviation context is unavailable right now — hotel results are unaffected.</p>
             )}
-            {flightRecovery && flightRecovery.mode !== "unavailable" && (
-              <div className="lp-aviation-evidence">
-                <div className="lp-aviation-heading">
-                  <span className="lp-kicker">Alternate flight options</span>
-                  <span className="lp-source-badge tavily">Tavily web search</span>
-                </div>
-                {flightRecovery.historicalContext && (
-                  <p className="lp-aviation-airport">
-                    {flightRecovery.historicalContext.originIata}
-                    {flightRecovery.historicalContext.destinationIata ? ` → ${flightRecovery.historicalContext.destinationIata}` : ""}
-                    {flightRecovery.historicalContext.onTimeRate !== undefined && (
-                      <> · {Math.round(flightRecovery.historicalContext.onTimeRate * 100)}% historically on time</>
-                    )}
-                  </p>
-                )}
-                {flightRecovery.options.length > 0 ? (
-                  <div className="lp-flight-links">
-                    {flightRecovery.options.map((option) => (
-                      <button key={option.url} className="lp-flight-link" onClick={() => setFlightApproval(option)}>
-                        <span>{option.label}</span>
-                        <Icon name="arrow" />
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="lp-aviation-skip">
-                    {flightRecovery.warnings[0] ?? "No flight search links are available right now."}
-                  </p>
-                )}
-                <p className="lp-aviation-disclaimer">
-                  LandingPad does not search or book flights directly — these are grounded search links, and historical performance does not confirm today’s flight status.
-                </p>
-              </div>
-            )}
-            {flightRecovery?.mode === "unavailable" && (
-              <p className="lp-aviation-skip">Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>
+            {request.assistanceScope === "flight" && flightRecovery && (
+              <FlightRecoverySection flightRecovery={flightRecovery} onSelect={setFlightApproval} />
             )}
             {plans.length === 0 ? (
               <div className="lp-empty-state">
@@ -665,6 +640,9 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               ))}
             </div>}
             <p className="lp-data-note">Demo-labeled options are validated fixtures, not live availability. Live results preserve Stay22 booking links exactly.</p>
+            {request.assistanceScope !== "flight" && flightRecovery && (
+              <FlightRecoverySection flightRecovery={flightRecovery} onSelect={setFlightApproval} />
+            )}
           </div>
         )}
 
@@ -730,4 +708,54 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 function SearchRow({ label, vendor, state }: { label: string; vendor: string; state: SearchState }) {
   const text = state === "working" ? "Searching" : state === "done" ? "Ready" : state === "fallback" ? "Fallback ready" : "Waiting";
   return <div className={`lp-search-row is-${state}`}><span className="lp-search-status">{state === "done" || state === "fallback" ? <Icon name="check" /> : <i />}</span><div><strong>{label}</strong><small>{vendor}</small></div><em>{text}</em></div>;
+}
+
+function FlightRecoverySection({
+  flightRecovery,
+  onSelect,
+}: {
+  flightRecovery: FlightRecoveryContext;
+  onSelect: (option: FlightRecoveryOption) => void;
+}) {
+  if (flightRecovery.mode === "unavailable") {
+    return <p className="lp-aviation-skip">Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>;
+  }
+  return (
+    <div className="lp-flight-section">
+      <div className="lp-section-heading compact">
+        <div>
+          <span className="lp-kicker">Alternate flight options</span>
+          <h2>Ways back on track</h2>
+        </div>
+        <span className="lp-source-badge tavily">Tavily web search</span>
+      </div>
+      {flightRecovery.historicalContext && (
+        <p className="lp-flight-route">
+          {flightRecovery.historicalContext.originIata}
+          {flightRecovery.historicalContext.destinationIata ? ` → ${flightRecovery.historicalContext.destinationIata}` : ""}
+          {flightRecovery.historicalContext.onTimeRate !== undefined && (
+            <> · {Math.round(flightRecovery.historicalContext.onTimeRate * 100)}% historically on time</>
+          )}
+        </p>
+      )}
+      {flightRecovery.options.length > 0 ? (
+        <div className="lp-flight-grid">
+          {flightRecovery.options.map((option, index) => (
+            <article className="lp-flight-card" key={option.url}>
+              <span className="lp-plan-index">0{index + 1}</span>
+              <p>{option.label}</p>
+              <button className="lp-primary compact" onClick={() => onSelect(option)}>
+                Review &amp; search <Icon name="arrow" />
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="lp-aviation-skip">{flightRecovery.warnings[0] ?? "No flight search links are available right now."}</p>
+      )}
+      <p className="lp-data-note">
+        LandingPad does not search or book flights directly — these are grounded search links, and historical performance does not confirm today’s flight status.
+      </p>
+    </div>
+  );
 }
