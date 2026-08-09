@@ -66,6 +66,36 @@ describe("trip request extraction", () => {
     expect(noFlightMentioned.tripRequest.flight).toBeUndefined();
   });
 
+  it("detects an explicit hotel-only or flight-only assistance scope, defaulting to undefined (both) when ambiguous", () => {
+    const hotelOnly = deterministicExtract({
+      transcript: "Our flight out of JFK was cancelled. We just need a hotel room tonight.",
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(hotelOnly.tripRequest.assistanceScope).toBe("hotel");
+
+    const flightOnly = deterministicExtract({
+      transcript: "Our flight out of JFK was cancelled. We only need an alternate flight, we're staying with family.",
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(flightOnly.tripRequest.assistanceScope).toBe("flight");
+
+    const both = deterministicExtract({
+      transcript: "Our flight out of JFK was cancelled. We need both a hotel and an alternate flight.",
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(both.tripRequest.assistanceScope).toBe("both");
+
+    const ambiguous = deterministicExtract({
+      transcript: seeded,
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(ambiguous.tripRequest.assistanceScope).toBeUndefined();
+  });
+
   it("uses the Responses API structured output and removes nullable optional fields", async () => {
     const fetchImpl = vi.fn(async () =>
       modelResponse({

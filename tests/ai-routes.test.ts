@@ -44,6 +44,30 @@ describe("recovery route contracts", () => {
     expect(payload).toMatchObject({ ok: true, mode: "demo", data: { extractionMode: "demo" } });
   });
 
+  it("forces deterministic extraction via appMode=demo, never calling OpenAI even when configured", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key-present");
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(() => {
+      throw new Error("OpenAI must not be contacted in demo mode");
+    }) as unknown as typeof fetch;
+
+    try {
+      const response = await extract(
+        jsonRequest({
+          transcript: "Our flight out of JFK was cancelled. Two adults need one room tonight under $300.",
+          referenceDate: "2026-08-09",
+          mode: "recovery",
+          appMode: "demo",
+        }),
+      );
+      const payload = await response.json();
+      expect(response.status).toBe(200);
+      expect(payload).toMatchObject({ ok: true, mode: "demo", data: { extractionMode: "demo" } });
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("rejects malformed ranking input without exposing validation internals", async () => {
     const response = await rank(jsonRequest({ tripRequest: { mode: "recovery" }, candidates: [] }));
     const payload = await response.json();

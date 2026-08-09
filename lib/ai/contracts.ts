@@ -7,6 +7,9 @@ export const extractRequestSchema = z.object({
   transcript: z.string().trim().min(1).max(8_000),
   referenceDate: z.iso.date().optional(),
   mode: z.enum(["recovery", "event"]).default("recovery"),
+  // "demo" forces the deterministic extractor even when OpenAI is configured
+  // — distinct from `mode` above, which is the recovery/event product mode.
+  appMode: z.enum(["demo", "active"]).optional(),
 });
 
 export const extractionResultSchema = z.object({

@@ -10,6 +10,7 @@ import { invalidRequest, serverFailure } from "@/lib/ai/http";
 // arrive through this schema.
 const flightRecoveryRequestSchema = z.object({
   flight: flightSchema,
+  appMode: z.enum(["demo", "active"]).optional(),
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -21,6 +22,14 @@ export async function POST(request: Request): Promise<Response> {
   }
   const parsed = flightRecoveryRequestSchema.safeParse(body);
   if (!parsed.success) return invalidRequest();
+
+  if (parsed.data.appMode === "demo") {
+    const body: ApiResult<FlightRecoveryContext> = {
+      ok: true,
+      data: { mode: "unavailable", options: [], evidence: [], warnings: ["Flight recovery is unavailable in demo mode."] },
+    };
+    return Response.json(body);
+  }
 
   try {
     const data = await getFlightRecoveryContext({ flight: parsed.data.flight });

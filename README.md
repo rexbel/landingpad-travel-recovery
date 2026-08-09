@@ -14,6 +14,15 @@ npm run dev
 
 The app runs at `http://localhost:3000`.
 
+## Demo mode vs. Active mode
+
+The app header has a **Demo mode / Active mode** toggle (defaults to Demo — the safer choice for a live presentation):
+
+- **Demo mode** forces every server route to its seeded/fallback path — Stay22 returns its own demo fixtures, and Tavily, AeroXplorer, flight recovery, and voice all report themselves unavailable. **No provider is contacted, regardless of what credentials are configured.** This is the same offline behavior described below, just guaranteed deliberately rather than by absence of credentials.
+- **Active mode** attempts real calls to every configured provider (Stay22, Tavily, OpenAI, ElevenLabs, AeroXplorer) — this is the app's original default behavior before the toggle existed. A provider that isn't configured, or that fails, still degrades gracefully to fallback data exactly as documented below; Active mode does not require every provider to be configured.
+
+Toggling is purely a client preference sent as `appMode: "demo" | "active"` on every request — no page reload needed.
+
 ## Offline / demo mode
 
 **No provider credentials are required to run the full journey.** Every server-side adapter fails closed to labeled demo/fallback data when a credential is absent:
@@ -55,6 +64,10 @@ AeroXplorer is a **historical** evidence provider, not a live flight-status feed
 - **Server-only credentials:** `AEROXPLORER_API_KEY`, `AEROXPLORER_API_SECRET`, optional `AEROXPLORER_API_BASE_URL` (defaults to `https://api.aeroxplorer.com`). Never exposed to the client.
 - **Token lifecycle:** cached in server-process memory, refreshed 5 minutes before its documented expiration, single-flight for concurrent requests, cleared and retried exactly once on a `401`. This module-level cache is fine for one hackathon server instance but is **not** a multi-instance strategy — a horizontally scaled deployment would need a centralized token broker so instances don't invalidate each other's tokens.
 - **Limitations:** rates (cancellation/delay/diversion) are computed from whatever sample AeroXplorer's historical database returns for the narrow query (bounded to 100 records), each with its own explicit denominator — they are a historical sample, not a forecast, and are never presented as one.
+
+### Voice conversation flow
+
+Voice is only attempted in **Active mode** — it's disabled entirely in Demo mode (the button explains why if clicked). When active, the ElevenLabs conversation actively asks two questions rather than passively waiting: *"What happened, and do you need help with a hotel, an alternate flight, or both?"* This is sent as a session-start override (`overrides.agent.firstMessage` and `overrides.agent.prompt`), not a dashboard change — but **the ElevenLabs agent's dashboard security settings must allow first-message and prompt overrides for this to take effect live**; if overrides aren't permitted, the agent falls back to its own configured behavior and the app still degrades gracefully (text intake always works regardless). The traveler's answer to "hotel, flight, or both" flows into the same transcript sent to extraction, where it's parsed into `assistanceScope` — saying "just a hotel" skips the flight-recovery search entirely rather than showing options nobody asked for.
 
 ### Flight recovery: search assistance, not live search
 

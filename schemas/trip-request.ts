@@ -42,6 +42,10 @@ export const tripRequestSchema = z
       })
       .optional(),
     flight: flightSchema.optional(),
+    // Which half of the disruption the traveler asked for. Undefined means
+    // ambiguous/unspecified and is treated as "both" downstream — this field
+    // narrows, it never expands scope beyond what was actually said.
+    assistanceScope: z.enum(["hotel", "flight", "both"]).optional(),
   })
   .superRefine((value, context) => {
     if (value.checkout <= value.checkin) {

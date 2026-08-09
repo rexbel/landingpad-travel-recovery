@@ -66,6 +66,26 @@ const tripRequestJsonSchema = {
         { type: "null" },
       ],
     },
+    flight: {
+      anyOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            airlineCode: nullableString,
+            flightNumber: nullableString,
+            originIata: nullableString,
+            destinationIata: nullableString,
+            scheduledDate: nullableString,
+          },
+          required: ["airlineCode", "flightNumber", "originIata", "destinationIata", "scheduledDate"],
+        },
+        { type: "null" },
+      ],
+    },
+    assistanceScope: {
+      anyOf: [{ type: "string", enum: ["hotel", "flight", "both"] }, { type: "null" }],
+    },
     missingFields: { type: "array", items: { type: "string" } },
   },
   required: [
@@ -85,6 +105,8 @@ const tripRequestJsonSchema = {
     "uncertainties",
     "disruption",
     "event",
+    "flight",
+    "assistanceScope",
     "missingFields",
   ],
 } as const;
@@ -134,7 +156,7 @@ export async function extractWithOpenAI(
             {
               role: "system",
               content:
-                "Extract only facts stated or safely implied by the traveler. Put missing or unverified facts in uncertainties and missingFields. Never invent prices, dates, accessibility, amenities, availability, or travel times. Use the supplied reference date for 'tonight'.",
+                "Extract only facts stated or safely implied by the traveler. Put missing or unverified facts in uncertainties and missingFields. Never invent prices, dates, accessibility, amenities, availability, or travel times. Use the supplied reference date for 'tonight'. Only populate flight fields (airlineCode, flightNumber, originIata, destinationIata, scheduledDate) when the traveler stated them explicitly — leave any unstated field null, never guess an IATA or flight number. Set assistanceScope to 'hotel' or 'flight' only if the traveler explicitly said they need just one; otherwise use 'both' or null.",
             },
             {
               role: "user",

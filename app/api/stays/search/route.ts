@@ -12,6 +12,7 @@ const querySchema = z.object({
   children: z.coerce.number().int().nonnegative().default(0),
   rooms: z.coerce.number().int().positive().default(1),
   currency: z.string().trim().length(3).default("USD"),
+  appMode: z.enum(["demo", "active"]).optional(),
 }).refine((value) => value.address || value.targetArea, {
   message: "A search location is required.",
   path: ["address"],
@@ -29,10 +30,11 @@ export async function GET(request: Request) {
     return Response.json(body, { status: 400 });
   }
 
-  const result = await searchStays({
-    ...parsed.data,
-    address: parsed.data.address ?? parsed.data.targetArea!,
-  });
+  const { appMode, targetArea, ...searchInput } = parsed.data;
+  const result = await searchStays(
+    { ...searchInput, address: searchInput.address ?? targetArea! },
+    { forceDemo: appMode === "demo" },
+  );
   if (!result.ok) {
     const body: ApiResult<StayOption[]> = {
       ok: false,

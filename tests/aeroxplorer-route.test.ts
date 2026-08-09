@@ -87,6 +87,26 @@ describe("POST /api/aviation/context", () => {
     }
   });
 
+  it("skips the live attempt entirely when appMode=demo, even with credentials configured", async () => {
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(() => {
+      throw new Error("AeroXplorer must not be contacted in demo mode");
+    }) as unknown as typeof fetch;
+
+    try {
+      const response = await aviationContext(
+        jsonRequest({ targetArea: "JFK Airport, New York", appMode: "demo" }),
+      );
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      expect(payload.data.mode).toBe("unavailable");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("degrades gracefully to unavailable when AeroXplorer is unreachable, without throwing", async () => {
     process.env.AEROXPLORER_API_KEY = "k";
     process.env.AEROXPLORER_API_SECRET = "s";

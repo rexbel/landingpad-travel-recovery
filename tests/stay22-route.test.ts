@@ -44,6 +44,19 @@ describe("GET /api/stays/search", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(searchStays).toHaveBeenCalledWith(expect.objectContaining({ address: "JFK Airport" }));
+    expect(searchStays).toHaveBeenCalledWith(expect.objectContaining({ address: "JFK Airport" }), { forceDemo: false });
+  });
+
+  it("forces demo data and skips the live attempt when appMode=demo", async () => {
+    searchStays.mockResolvedValue({ ok: true, options: [], mode: "demo" });
+    const { GET } = await import("@/app/api/stays/search/route");
+    const response = await GET(
+      new Request(
+        "http://localhost/api/stays/search?address=JFK&checkin=2026-08-09&checkout=2026-08-10&appMode=demo",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(searchStays).toHaveBeenCalledWith(expect.objectContaining({ address: "JFK" }), { forceDemo: true });
   });
 });

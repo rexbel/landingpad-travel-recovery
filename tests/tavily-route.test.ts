@@ -41,4 +41,19 @@ describe("POST /api/context/search", () => {
       fallbackAvailable: false,
     });
   });
+
+  it("skips the live attempt entirely when appMode=demo", async () => {
+    const { POST } = await import("@/app/api/context/search/route");
+    const response = await POST(
+      new Request("http://localhost/api/context/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "late-night food near JFK", appMode: "demo" }),
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(searchLocalContext).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ ok: false, error: { code: "TAVILY_DEMO_MODE" } });
+  });
 });

@@ -26,6 +26,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .lp-brand-mark svg { width: 18px; height: 18px; }
 .lp-mode-pill { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .lp-mode-pill span { width: 7px; height: 7px; border-radius: 50%; background: #4cc48d; box-shadow: 0 0 0 4px rgba(76,196,141,.14); }
+.lp-app-mode-toggle { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border: 1px solid #d8ded8; border-radius: 999px; background: #fff; color: var(--ink); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; cursor: pointer; }
+.lp-app-mode-toggle span { width: 7px; height: 7px; border-radius: 50%; background: #a9a196; }
+.lp-app-mode-toggle.is-active { border-color: var(--teal); color: var(--teal); }
+.lp-app-mode-toggle.is-active span { background: #4cc48d; box-shadow: 0 0 0 4px rgba(76,196,141,.14); }
 .lp-text-button { border: 0; background: transparent; font-size: 13px; font-weight: 750; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .lp-progress { width: min(620px, calc(100% - 40px)); margin: 26px auto 0; display: grid; grid-template-columns: repeat(5,1fr); position: relative; }
 .lp-progress:before { content: ""; height: 1px; background: #cfd6cf; position: absolute; top: 15px; left: 10%; right: 10%; }
