@@ -1,4 +1,11 @@
+import { checkAeroXplorer } from "./aeroxplorer-preflight.mjs";
+
 const isLive = process.argv.includes("--live");
+const providerFilter = (() => {
+  const idx = process.argv.indexOf("--provider");
+  return idx !== -1 ? process.argv[idx + 1]?.toLowerCase() : undefined;
+})();
+const inGitHubActions = process.env.GITHUB_ACTIONS === "true";
 const timeoutMs = 12_000;
 
 function statusClass(status) {
@@ -6,29 +13,28 @@ function statusClass(status) {
 }
 
 async function check(name, configured, run) {
+  const missingDetail = typeof configured === "string" ? configured : undefined;
+  const isConfigured = configured === true;
+
   if (!isLive) {
     return {
       name,
-      status: configured ? "configured" : "not configured",
-      detail: "offline mode — pass --live to test connectivity",
+      status: isConfigured ? "configured" : "not configured",
+      detail: missingDetail ?? "offline mode — pass --live to test connectivity",
     };
   }
-  if (!configured) {
-    return { name, status: "pending", detail: "credential not configured" };
+  if (!isConfigured) {
+    return { name, status: "pending", detail: missingDetail ?? "credential not configured" };
   }
 
   const startedAt = Date.now();
   try {
-    const { response, schemaOk } = await run();
+    const outcome = await run();
     const elapsed = Date.now() - startedAt;
-    if (!response.ok) {
-      return { name, status: "failed", detail: `HTTP ${statusClass(response.status)} in ${elapsed} ms` };
+    if (outcome.status === "failed") {
+      return { name, status: "failed", detail: `${outcome.detail} in ${elapsed} ms` };
     }
-    return {
-      name,
-      status: schemaOk ? "ready" : "failed",
-      detail: `HTTP ${statusClass(response.status)} in ${elapsed} ms, schema ${schemaOk ? "ok" : "unexpected"}`,
-    };
+    return { name, status: "ready", detail: `${outcome.detail} in ${elapsed} ms` };
   } catch (error) {
     const detail = error instanceof Error ? error.name : "request failed";
     return { name, status: "failed", detail };
@@ -53,24 +59,20 @@ async function checkStay22() {
   const response = await timedFetch(url, {
     headers: process.env.STAY22_API_KEY ? { "X-API-KEY": process.env.STAY22_API_KEY } : undefined,
   });
-  let schemaOk = false;
-  if (response.ok) {
-    const body = await response.json().catch(() => null);
-    schemaOk = Boolean(body && typeof body === "object" && body.meta && Array.isArray(body.results));
-  }
-  return { response, schemaOk };
+  if (!response.ok) return { status: "failed", detail: `HTTP ${statusClass(response.status)}` };
+  const body = await response.json().catch(() => null);
+  const schemaOk = Boolean(body && typeof body === "object" && body.meta && Array.isArray(body.results));
+  return { status: schemaOk ? "ready" : "failed", detail: `HTTP ${statusClass(response.status)}, schema ${schemaOk ? "ok" : "unexpected"}` };
 }
 
 async function checkElevenLabs() {
   const url = new URL("https://api.elevenlabs.io/v1/convai/conversation/get-signed-url");
   url.searchParams.set("agent_id", process.env.ELEVENLABS_AGENT_ID ?? "");
   const response = await timedFetch(url, { headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY ?? "" } });
-  let schemaOk = false;
-  if (response.ok) {
-    const body = await response.json().catch(() => null);
-    schemaOk = Boolean(body && typeof body.signed_url === "string");
-  }
-  return { response, schemaOk };
+  if (!response.ok) return { status: "failed", detail: `HTTP ${statusClass(response.status)}` };
+  const body = await response.json().catch(() => null);
+  const schemaOk = Boolean(body && typeof body.signed_url === "string");
+  return { status: schemaOk ? "ready" : "failed", detail: `HTTP ${statusClass(response.status)}, schema ${schemaOk ? "ok" : "unexpected"}` };
 }
 
 async function checkTavily() {
@@ -79,36 +81,70 @@ async function checkTavily() {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.TAVILY_API_KEY ?? ""}` },
     body: JSON.stringify({ query: "JFK Airport official website", search_depth: "basic", max_results: 1 }),
   });
-  let schemaOk = false;
-  if (response.ok) {
-    const body = await response.json().catch(() => null);
-    schemaOk = Boolean(body && Array.isArray(body.results));
-  }
-  return { response, schemaOk };
+  if (!response.ok) return { status: "failed", detail: `HTTP ${statusClass(response.status)}` };
+  const body = await response.json().catch(() => null);
+  const schemaOk = Boolean(body && Array.isArray(body.results));
+  return { status: schemaOk ? "ready" : "failed", detail: `HTTP ${statusClass(response.status)}, schema ${schemaOk ? "ok" : "unexpected"}` };
 }
 
 async function checkOpenAI() {
   const response = await timedFetch("https://api.openai.com/v1/models", {
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}` },
   });
-  let schemaOk = false;
-  if (response.ok) {
-    const body = await response.json().catch(() => null);
-    schemaOk = Boolean(body && Array.isArray(body.data));
-  }
-  return { response, schemaOk };
+  if (!response.ok) return { status: "failed", detail: `HTTP ${statusClass(response.status)}` };
+  const body = await response.json().catch(() => null);
+  const schemaOk = Boolean(body && Array.isArray(body.data));
+  return { status: schemaOk ? "ready" : "failed", detail: `HTTP ${statusClass(response.status)}, schema ${schemaOk ? "ok" : "unexpected"}` };
 }
 
-const results = await Promise.all([
-  check("Stay22", true, checkStay22),
-  check(
-    "ElevenLabs",
-    Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_AGENT_ID),
-    checkElevenLabs,
-  ),
-  check("Tavily", Boolean(process.env.TAVILY_API_KEY), checkTavily),
-  check("OpenAI", Boolean(process.env.OPENAI_API_KEY), checkOpenAI),
-]);
+// AeroXplorer: POST /v1/token (header X-User: KEY:SECRET) -> { bearer, expiration }.
+// The OpenAPI securityScheme documents "X-Authorization: Bearer <token>" for authenticated
+// requests, but one example on the docs page shows a plain "Authorization" header. The
+// shared checkAeroXplorer() helper tries X-Authorization first and falls back to
+// Authorization exactly once, only on an authentication failure.
+function maskInGitHubActions(secretValue) {
+  if (inGitHubActions && secretValue) {
+    process.stdout.write(`::add-mask::${secretValue}\n`);
+  }
+}
+
+async function runAeroXplorerCheck() {
+  const result = await checkAeroXplorer({
+    apiKey: process.env.AEROXPLORER_API_KEY,
+    apiSecret: process.env.AEROXPLORER_API_SECRET,
+    timeoutMs,
+    onToken: maskInGitHubActions,
+  });
+  const detail = result.headerUsed ? `${result.detail}; auth header used: ${result.headerUsed}` : result.detail;
+  return { status: result.status, detail };
+}
+
+const providers = [
+  { key: "stay22", name: "Stay22", configured: true, run: checkStay22 },
+  {
+    key: "elevenlabs",
+    name: "ElevenLabs",
+    configured: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_AGENT_ID),
+    run: checkElevenLabs,
+  },
+  { key: "tavily", name: "Tavily", configured: Boolean(process.env.TAVILY_API_KEY), run: checkTavily },
+  { key: "openai", name: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY), run: checkOpenAI },
+  {
+    key: "aeroxplorer",
+    name: "AeroXplorer",
+    configured: (() => {
+      const missing = [];
+      if (!process.env.AEROXPLORER_API_KEY) missing.push("AEROXPLORER_API_KEY");
+      if (!process.env.AEROXPLORER_API_SECRET) missing.push("AEROXPLORER_API_SECRET");
+      return missing.length === 0 ? true : `missing: ${missing.join(", ")}`;
+    })(),
+    run: runAeroXplorerCheck,
+  },
+];
+
+const selected = providers.filter((provider) => !providerFilter || provider.key === providerFilter);
+
+const results = await Promise.all(selected.map((provider) => check(provider.name, provider.configured, provider.run)));
 
 console.table(results);
 

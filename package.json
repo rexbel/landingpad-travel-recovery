@@ -9,6 +9,7 @@
     "lint": "eslint",
     "preflight": "node scripts/integration-preflight.mjs",
     "preflight:live": "node scripts/integration-preflight.mjs --live",
+    "preflight:live:aeroxplorer": "node scripts/integration-preflight.mjs --live --provider aeroxplorer",
     "test": "vitest run",
     "test:watch": "vitest"
   },

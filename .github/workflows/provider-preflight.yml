@@ -2,14 +2,28 @@ name: Provider credential preflight
 
 on:
   workflow_dispatch:
+    inputs:
+      provider:
+        description: "Which provider(s) to check live"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - aeroxplorer
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.event.inputs.provider == 'aeroxplorer' && 'aeroxplorer-preflight-token' || format('provider-preflight-{0}', github.run_id) }}
+  cancel-in-progress: false
 
 jobs:
   verify-provider-credentials:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.event.inputs.provider == 'all'
     env:
       STAY22_API_KEY: ${{ secrets.STAY22_API_KEY }}
       ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
@@ -80,3 +94,28 @@ jobs:
             'https://api.openai.com/v1/models')"
           echo "OpenAI: HTTP $status"
           [[ "$status" == "200" ]]
+
+  verify-aeroxplorer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: github.event.inputs.provider == 'aeroxplorer'
+    permissions:
+      contents: read
+    env:
+      AEROXPLORER_API_KEY: ${{ secrets.AEROXPLORER_API_KEY }}
+      AEROXPLORER_API_SECRET: ${{ secrets.AEROXPLORER_API_SECRET }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify AeroXplorer (token + JFK airport lookup)
+        run: npm run preflight:live:aeroxplorer
