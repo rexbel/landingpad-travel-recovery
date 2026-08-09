@@ -56,6 +56,10 @@ AeroXplorer is a **historical** evidence provider, not a live flight-status feed
 - **Token lifecycle:** cached in server-process memory, refreshed 5 minutes before its documented expiration, single-flight for concurrent requests, cleared and retried exactly once on a `401`. This module-level cache is fine for one hackathon server instance but is **not** a multi-instance strategy — a horizontally scaled deployment would need a centralized token broker so instances don't invalidate each other's tokens.
 - **Limitations:** rates (cancellation/delay/diversion) are computed from whatever sample AeroXplorer's historical database returns for the narrow query (bounded to 100 records), each with its own explicit denominator — they are a historical sample, not a forecast, and are never presented as one.
 
+### Flight recovery: search assistance, not live search
+
+LandingPad has no live flight-search, availability, or booking provider — AeroXplorer's API is historical-only. `lib/flight-recovery/` combines a narrow Tavily query (up to 3 grounded search links, e.g. "search JFK → ORD flights") with a route-level AeroXplorer historical on-time rate, both independent of each other and of hotel search. It never lists a specific bookable flight, and outbound links go through the same explicit approval gate as hotel booking links. This intentionally revises part of the original non-goal "Flight search or airline rebooking" — see `docs/build-plan.md`'s revision note and `docs/architecture.md` for the full boundary. Airline rebooking (actually completing a booking) remains out of scope.
+
 ## Safety boundaries
 
 - No reservation, payment, or booking is ever made by the app — every booking link requires an explicit approval click and opens the supplier's own page.
@@ -69,8 +73,8 @@ AeroXplorer is a **historical** evidence provider, not a live flight-status feed
 1. **Tell us** — speak or type: *"Our flight out of JFK was cancelled. Two adults need one room tonight, under $300 total, preferably within 25 minutes of the airport. We need late check-in and somewhere nearby to get food after 10 PM."*
 2. **Confirm** — an editable structured brief (dates, party, budget, must-haves) built from the request.
 3. **Search** — Stay22 (dated pricing + deeplinks) and Tavily (local context) run in parallel; each degrades to labeled fallback data independently if it fails.
-4. **Compare** — three ranked plans (Fastest recovery / Best value / Best rest), each labeled by data source.
-5. **Handoff** — an approval gate before any booking link opens, plus a copyable advisor summary with confirmed facts and open questions.
+4. **Compare** — three ranked plans (Fastest recovery / Best value / Best rest), each labeled by data source, alongside an "Alternate flight options" panel (grounded search links + historical on-time context) when a destination was mentioned.
+5. **Handoff** — an approval gate before any booking or flight-search link opens, plus a copyable advisor summary with confirmed facts and open questions.
 
 ## Validation commands
 

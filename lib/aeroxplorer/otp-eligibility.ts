@@ -1,5 +1,5 @@
 import type { TripRequest } from "@/schemas/trip-request";
-import type { ExactFlightHistoryQuery } from "./client";
+import type { ExactFlightHistoryQuery, RouteHistoryQuery } from "./client";
 
 /**
  * Deterministic decision for whether the request carries enough detail for a
@@ -19,6 +19,25 @@ export function buildExactFlightHistoryQuery(flight: TripRequest["flight"]): Exa
   return {
     airlineCode,
     flightNumber,
+    originIata,
+    destinationIata: flight.destinationIata?.trim() || undefined,
+    scheduledDate,
+  };
+}
+
+/**
+ * Looser than buildExactFlightHistoryQuery: a route-level historical query
+ * only needs an origin and a date (destination narrows it further when
+ * known). No airline or flight number required — a traveler weighing
+ * alternate flights usually doesn't have a specific flight number yet.
+ */
+export function buildRouteHistoryQuery(flight: TripRequest["flight"]): RouteHistoryQuery | null {
+  if (!flight) return null;
+  const originIata = flight.originIata?.trim();
+  const scheduledDate = flight.scheduledDate;
+  if (!originIata || !scheduledDate) return null;
+
+  return {
     originIata,
     destinationIata: flight.destinationIata?.trim() || undefined,
     scheduledDate,

@@ -35,6 +35,37 @@ describe("trip request extraction", () => {
     expect(result.tripRequest.preferences).toContain("Food nearby after 10 PM");
   });
 
+  it("detects a mentioned destination city and resolves it to an IATA code, without inventing one for an unknown city", () => {
+    const withDestination = deterministicExtract({
+      transcript: "Our flight out of JFK was cancelled. We're trying to get to Chicago tomorrow.",
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(withDestination.tripRequest.flight).toEqual({
+      originIata: "JFK",
+      destinationIata: "ORD",
+      scheduledDate: "2026-08-10",
+    });
+
+    const unknownCity = deterministicExtract({
+      transcript: "Our flight out of JFK was cancelled. We're trying to get to Antarctica tomorrow.",
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(unknownCity.tripRequest.flight).toEqual({
+      originIata: "JFK",
+      destinationIata: undefined,
+      scheduledDate: "2026-08-10",
+    });
+
+    const noFlightMentioned = deterministicExtract({
+      transcript: "I need a room near downtown for two nights.",
+      referenceDate: "2026-08-09",
+      mode: "recovery",
+    });
+    expect(noFlightMentioned.tripRequest.flight).toBeUndefined();
+  });
+
   it("uses the Responses API structured output and removes nullable optional fields", async () => {
     const fetchImpl = vi.fn(async () =>
       modelResponse({

@@ -7,17 +7,17 @@ import { buildExactFlightHistoryQuery } from "./otp-eligibility";
 // US DOT on-time-performance convention: an arrival is "delayed" at 15+ minutes.
 const DELAY_THRESHOLD_MINUTES = 15;
 
-function clamp01(value: number): number {
+export function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function toBooleanFlag(value: boolean | number | undefined): boolean | undefined {
+export function toBooleanFlag(value: boolean | number | undefined): boolean | undefined {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value !== 0;
   return undefined;
 }
 
-function describeObservationWindow(query: ExactFlightHistoryQuery): string {
+export function describeObservationWindow(query: { scheduledDate: string }): string {
   const [year] = query.scheduledDate.split("-");
   const monthName = new Date(`${query.scheduledDate}T00:00:00Z`).toLocaleString("en-US", {
     month: "long",
