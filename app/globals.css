@@ -95,6 +95,14 @@ h1, h2, p { margin-top: 0; }
 .lp-aviation-stats span { padding: 7px 10px; border-radius: 8px; background: #fff; color: #1f4d6b; font-size: 12px; font-weight: 700; }
 .lp-aviation-disclaimer { margin: 0; font-size: 11px; color: var(--muted); }
 .lp-aviation-skip { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.lp-flight-section { margin: 0 0 34px; }
+.lp-section-heading.compact { margin-bottom: 18px; }
+.lp-section-heading.compact h2 { margin: 6px 0 0; font-size: clamp(22px,3vw,30px); line-height: 1.05; letter-spacing: -.035em; font-weight: 780; }
+.lp-flight-route { margin: 0 0 14px; font-size: 13px; font-weight: 800; color: var(--ink); }
+.lp-flight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 12px; margin-bottom: 12px; }
+.lp-flight-card { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 24px rgba(34,53,47,.05); }
+.lp-flight-card p { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.4; }
+.lp-primary.compact { min-height: 40px; padding: 0 14px; font-size: 12px; }
 .lp-form-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; }
 .lp-form-grid label { display: grid; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .07em; }
 .lp-form-grid label.wide { grid-column: 1 / -1; }
