@@ -4,6 +4,7 @@ export const sourceModeSchema = z.enum([
   "user",
   "stay22-live",
   "tavily-web",
+  "aeroxplorer-historical",
   "inference",
   "demo",
 ]);

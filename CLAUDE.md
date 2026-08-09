@@ -507,9 +507,9 @@ Rules:
 
 Credit sponsors accurately in the README, architecture documentation, and pitch:
 
-- **Integrated:** Stay22, ElevenLabs, Tavily
+- **Integrated:** Stay22, ElevenLabs, Tavily, AeroXplorer (historical aviation evidence only — airport identity and, for an exact flight query, historical performance; never live flight status)
 - **Advisor-prize alignment:** Anecdote Travel
-- **Strategic or future routes only:** Rove, Propellic, AeroXplorer, Globe Thrivers, Nappr, Lovable unless actually integrated during the event
+- **Strategic or future routes only:** Rove, Propellic, Globe Thrivers, Nappr, Lovable unless actually integrated during the event
 
 Do not claim an API or partnership that is not actually used. Do not place sponsor logos in the product without clear brand-use permission.
 
