@@ -2,7 +2,7 @@ import type { RecoveryPlan } from "@/schemas/recovery-plan";
 import type { TripRequest } from "@/schemas/trip-request";
 
 export const primaryPrompt =
-  "Our flight out of JFK was cancelled. Two adults need one room tonight, under $300 total, preferably within 25 minutes of the airport. We need late check-in and somewhere nearby to get food after 10 PM.";
+  "Our flight out of JFK was cancelled. We're trying to get to a wedding in Chicago tomorrow. Two adults need one room tonight, under $300 total, preferably within 25 minutes of the airport. We need late check-in and somewhere nearby to get food after 10 PM.";
 
 export const primaryTripRequest: TripRequest = {
   mode: "recovery",
@@ -24,6 +24,11 @@ export const primaryTripRequest: TripRequest = {
   disruption: {
     summary: "Outbound flight cancelled at JFK",
     urgency: "same-day",
+  },
+  flight: {
+    originIata: "JFK",
+    destinationIata: "ORD",
+    scheduledDate: "2026-08-10",
   },
 };
 

@@ -79,6 +79,11 @@ h1, h2, p { margin-top: 0; }
 .lp-source-badge.demo { color: #7a5c1a; background: #f7ebc9; }
 .lp-source-badge.live { color: #285f50; background: #ddf1e7; }
 .lp-source-badge.aeroxplorer { color: #1f4d6b; background: #dcebf5; }
+.lp-source-badge.tavily { color: #3d6b3d; background: #e3f0e3; }
+.lp-flight-links { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.lp-flight-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid #d8ded8; border-radius: 10px; background: #fff; color: var(--ink); font-size: 12px; text-align: left; cursor: pointer; }
+.lp-flight-link:hover { border-color: var(--teal); }
+.lp-flight-link svg { width: 14px; flex-shrink: 0; }
 .lp-aviation-evidence { margin: 20px 0; padding: 16px 18px; border-radius: 14px; background: #eef4f5; }
 .lp-aviation-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .lp-aviation-airport { margin: 0 0 8px; font-size: 13px; font-weight: 800; color: var(--ink); }

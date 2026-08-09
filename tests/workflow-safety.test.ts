@@ -110,3 +110,34 @@ describe("AeroXplorer stays outside hotel eligibility logic", () => {
     }
   });
 });
+
+describe("flight recovery stays outside hotel eligibility logic and never claims live status", () => {
+  it("the client component never imports the server-only flight-recovery adapter directly", async () => {
+    const source = await read("components/landingpad/landingpad-experience.tsx");
+    expect(source).not.toMatch(/from ["']@\/lib\/flight-recovery/);
+    expect(source).toContain("/api/flight-recovery/context");
+  });
+
+  it("deterministic ranking never references flight recovery", async () => {
+    const rankingSource = await read("lib/ai/ranking.ts");
+    expect(rankingSource.toLowerCase()).not.toContain("flight-recovery");
+    expect(rankingSource.toLowerCase()).not.toContain("flightrecovery");
+  });
+
+  it("the flight-recovery orchestrator guards against client-side execution", async () => {
+    const source = await read("lib/flight-recovery/index.ts");
+    expect(source).toContain('throw new Error("SERVER_ONLY_ADAPTER")');
+  });
+
+  it("no source file describes flight recovery as booking, live status, or a confirmed cancellation", async () => {
+    // Note: phrases like "no live flight-search provider" are legitimate
+    // disclaimers and must NOT trip this check — only positive claims should.
+    for (const file of ["lib/flight-recovery/index.ts", "lib/flight-recovery/search.ts", "app/api/flight-recovery/context/route.ts"]) {
+      const source = (await read(file)).toLowerCase();
+      expect(source).not.toContain("book a flight");
+      expect(source).not.toContain("live flight status");
+      expect(source).not.toContain("available flights");
+      expect(source).not.toContain("confirmed cancellation");
+    }
+  });
+});

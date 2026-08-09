@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/demo-cases";
 import type { HandoffResult } from "@/lib/ai/contracts";
 import type { AviationContext } from "@/schemas/aviation-context";
+import type { FlightRecoveryContext, FlightRecoveryOption } from "@/schemas/flight-recovery";
 import {
   appendUserTranscript,
   deriveVoiceUIState,
@@ -81,6 +82,10 @@ function isAviationContext(value: unknown): value is AviationContext {
   return Boolean(value && typeof value === "object" && "mode" in value && "evidence" in value);
 }
 
+function isFlightRecoveryContext(value: unknown): value is FlightRecoveryContext {
+  return Boolean(value && typeof value === "object" && "mode" in value && "options" in value);
+}
+
 const fallbackSummary =
   "Advisor summary is temporarily unavailable. Verify the selected stay's price, availability, and terms directly with the supplier before booking.";
 
@@ -134,11 +139,13 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const [isRequestingMic, setIsRequestingMic] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
-  const [searchState, setSearchState] = useState<Record<string, SearchState>>({ stays: "waiting", context: "waiting", ranking: "waiting", aviation: "waiting" });
+  const [searchState, setSearchState] = useState<Record<string, SearchState>>({ stays: "waiting", context: "waiting", ranking: "waiting", aviation: "waiting", flights: "waiting" });
   const [approval, setApproval] = useState<RecoveryPlan | null>(null);
   const [copied, setCopied] = useState(false);
   const [handoffResult, setHandoffResult] = useState<HandoffResult | null>(null);
   const [aviationContext, setAviationContext] = useState<AviationContext | null>(null);
+  const [flightRecovery, setFlightRecovery] = useState<FlightRecoveryContext | null>(null);
+  const [flightApproval, setFlightApproval] = useState<FlightRecoveryOption | null>(null);
 
   const conversation = useConversation({
     onMessage: (payload) => {
@@ -171,6 +178,8 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     setCopied(false);
     setHandoffResult(null);
     setAviationContext(null);
+    setFlightRecovery(null);
+    setFlightApproval(null);
   }
 
   async function startVoice() {
@@ -258,12 +267,35 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     }
   }
 
+  // Independent of both the hotel chain and the AeroXplorer evidence fetch —
+  // flight search never blocks or is blocked by hotel search, ranking, or
+  // the approval gate. Assistance only, never a bookable flight.
+  async function fetchFlightRecovery() {
+    setSearchState((state) => ({ ...state, flights: "working" }));
+    try {
+      const response = await fetch("/api/flight-recovery/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flight: request.flight ?? {} }),
+      });
+      const data = apiData(await response.json());
+      if (!response.ok || !isFlightRecoveryContext(data)) throw new Error("Flight recovery unavailable");
+      setFlightRecovery(data);
+      setSearchState((state) => ({ ...state, flights: data.mode === "unavailable" ? "fallback" : "done" }));
+    } catch {
+      setFlightRecovery(null);
+      setSearchState((state) => ({ ...state, flights: "fallback" }));
+    }
+  }
+
   async function search() {
     setStep("search");
     setNotice(null);
-    setSearchState({ stays: "working", context: "waiting", ranking: "waiting", aviation: "waiting" });
+    setSearchState({ stays: "working", context: "waiting", ranking: "waiting", aviation: "waiting", flights: "waiting" });
     setAviationContext(null);
+    setFlightRecovery(null);
     void fetchAviationContext();
+    void fetchFlightRecovery();
     let liveStays: StayOption[] = [];
     let localContext: unknown[] = [];
     try {
@@ -349,6 +381,11 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   function openApprovedLink(plan: RecoveryPlan) {
     window.open(plan.stay.bookingUrl, "_blank", "noopener,noreferrer");
     void proceedToHandoff(plan);
+  }
+
+  function openApprovedFlightLink(option: FlightRecoveryOption) {
+    window.open(option.url, "_blank", "noopener,noreferrer");
+    setFlightApproval(null);
   }
 
   async function copySummary() {
@@ -463,6 +500,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <SearchRow label="Nearby essentials and context" vendor="Tavily" state={searchState.context} />
               <SearchRow label="Eligibility and plan ranking" vendor="LandingPad" state={searchState.ranking} />
               <SearchRow label="Historical operating context" vendor="AeroXplorer" state={searchState.aviation} />
+              <SearchRow label="Alternate flight options" vendor="Tavily" state={searchState.flights} />
             </div>
             <p>Each source can finish independently. Partial results stay useful.</p>
           </div>
@@ -512,6 +550,43 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
             )}
             {aviationContext?.mode === "unavailable" && (
               <p className="lp-aviation-skip">Historical aviation context is unavailable right now — hotel results are unaffected.</p>
+            )}
+            {flightRecovery && flightRecovery.mode !== "unavailable" && (
+              <div className="lp-aviation-evidence">
+                <div className="lp-aviation-heading">
+                  <span className="lp-kicker">Alternate flight options</span>
+                  <span className="lp-source-badge tavily">Tavily web search</span>
+                </div>
+                {flightRecovery.historicalContext && (
+                  <p className="lp-aviation-airport">
+                    {flightRecovery.historicalContext.originIata}
+                    {flightRecovery.historicalContext.destinationIata ? ` → ${flightRecovery.historicalContext.destinationIata}` : ""}
+                    {flightRecovery.historicalContext.onTimeRate !== undefined && (
+                      <> · {Math.round(flightRecovery.historicalContext.onTimeRate * 100)}% historically on time</>
+                    )}
+                  </p>
+                )}
+                {flightRecovery.options.length > 0 ? (
+                  <div className="lp-flight-links">
+                    {flightRecovery.options.map((option) => (
+                      <button key={option.url} className="lp-flight-link" onClick={() => setFlightApproval(option)}>
+                        <span>{option.label}</span>
+                        <Icon name="arrow" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="lp-aviation-skip">
+                    {flightRecovery.warnings[0] ?? "No flight search links are available right now."}
+                  </p>
+                )}
+                <p className="lp-aviation-disclaimer">
+                  LandingPad does not search or book flights directly — these are grounded search links, and historical performance does not confirm today’s flight status.
+                </p>
+              </div>
+            )}
+            {flightRecovery?.mode === "unavailable" && (
+              <p className="lp-aviation-skip">Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>
             )}
             {plans.length === 0 ? (
               <div className="lp-empty-state">
@@ -584,6 +659,18 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
             <p>You’re leaving LandingPad to review <strong>{approval.stay.name}</strong>. No reservation or payment has been made.</p>
             <div className="lp-modal-facts"><span>Total shown</span><strong>{approval.stay.currency} {approval.stay.totalPrice}</strong><small>{sourceLabel(approval.stay.sourceMode)} · Verify price, availability, late check-in, and cancellation terms on the supplier page.</small></div>
             <div className="lp-actions"><button className="lp-secondary" onClick={() => setApproval(null)}>Keep comparing</button><button className="lp-primary" onClick={() => openApprovedLink(approval)}>I approve, open link <Icon name="arrow" /></button></div>
+          </div>
+        </div>
+      )}
+
+      {flightApproval && (
+        <div className="lp-modal-backdrop" role="presentation" onMouseDown={() => setFlightApproval(null)}>
+          <div className="lp-modal" role="dialog" aria-modal="true" aria-labelledby="flight-approval-title" onMouseDown={(event) => event.stopPropagation()}>
+            <span className="lp-modal-icon"><Icon name="shield" /></span>
+            <span className="lp-kicker">Approval gate</span>
+            <h2 id="flight-approval-title">Continue to search this flight?</h2>
+            <p>You’re leaving LandingPad to search <strong>{flightApproval.label}</strong>. Nothing is booked here either.</p>
+            <div className="lp-actions"><button className="lp-secondary" onClick={() => setFlightApproval(null)}>Keep comparing</button><button className="lp-primary" onClick={() => openApprovedFlightLink(flightApproval)}>I approve, open link <Icon name="arrow" /></button></div>
           </div>
         </div>
       )}

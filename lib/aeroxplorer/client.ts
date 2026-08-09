@@ -184,3 +184,44 @@ export async function getExactFlightHistory(
   }
   return { ok: true, data: parsed.data };
 }
+
+export type RouteHistoryQuery = {
+  originIata: string;
+  destinationIata?: string;
+  scheduledDate: string;
+};
+
+/**
+ * Broader than getExactFlightHistory: no airline/flight number required, just
+ * a route and date — used to give a traveler considering alternate flights a
+ * sense of how that route has historically performed, not any one flight.
+ */
+export async function getRouteHistory(
+  query: RouteHistoryQuery,
+  options: RequestOptions = {},
+): Promise<AeroXplorerRequestResult<AeroXplorerOtpResponse>> {
+  const [year, month] = query.scheduledDate.split("-");
+  const params: Record<string, string> = {
+    origin_code: query.originIata,
+    date: query.scheduledDate,
+    year,
+    month: String(Number(month)),
+    results: "100",
+  };
+  if (query.destinationIata) params.dest_code = query.destinationIata;
+
+  const result = await authenticatedGet("/v1/travel/otp", params, options);
+  if (!result.ok) return result;
+  const parsed = aeroXplorerOtpResponseSchema.safeParse(result.data);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: "AEROXPLORER_RESPONSE_SCHEMA_INVALID",
+        message: "AeroXplorer historical response was not in the expected shape.",
+        retryable: false,
+      },
+    };
+  }
+  return { ok: true, data: parsed.data };
+}

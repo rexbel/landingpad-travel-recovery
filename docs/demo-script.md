@@ -1,4 +1,4 @@
-# LandingPad 90-second demo
+# LandingPad ~100-second demo
 
 ## Preflight
 
@@ -35,7 +35,15 @@ Show **Fastest recovery**, **Best value**, and **Best rest**. Point to the full-
 
 > Stay22 supplies dated accommodation data and the booking path. Tavily adds cited local context. LandingPad applies the hard eligibility rules first and explains the tradeoffs second.
 
-**1:08–1:23 — Human approval**
+**1:08–1:18 — Alternate flight options**
+
+Point to the **Alternate flight options** panel above the plan cards — the historical on-time line, then one search link. Select it and pause on its own approval gate.
+
+> LandingPad has no live flight-search provider, so it doesn’t pretend to. These are grounded search links plus historical operating context — never live status, never a booking. The same approval gate applies before leaving for a search page.
+
+Return to LandingPad without completing a search.
+
+**1:18–1:33 — Human approval**
 
 Select the recommended plan and pause on the approval gate.
 
@@ -43,17 +51,18 @@ Select the recommended plan and pause on the approval gate.
 
 Approve the link, then return to LandingPad.
 
-**1:23–1:30 — Advisor handoff**
+**1:33–1:40 — Advisor handoff**
 
 Copy the summary.
 
-> The same confirmed facts, open questions, and selected stay are ready for a human advisor. From disruption to a bookable, advisor-ready recovery plan in under two minutes.
+> The same confirmed facts, open questions, and selected stay are ready for a human advisor. From disruption to a bookable, advisor-ready recovery plan — hotel and flight both — in under two minutes.
 
 ## Failure pivots
 
 - **Voice unavailable:** “The secure voice layer is unavailable, so LandingPad preserved the complete text journey.” Continue immediately.
 - **Stay22 unavailable or rate-limited:** Point to **Demo data**. “These are validated fixtures, clearly labeled—not live availability.”
 - **Tavily unavailable:** Point to **Local context unavailable**. Do not improvise local claims.
+- **Flight recovery unavailable:** Point to the unavailable state under the plan cards. “Flight assistance is down; hotel results are unaffected either way.” Never improvise a flight status or price.
 - **No eligible result:** Return to the brief and change a constraint explicitly. State which hard limit is being relaxed.
 - **Outbound link issue:** Stop at the approval gate and use the recorded backup; never imply a booking occurred.
 

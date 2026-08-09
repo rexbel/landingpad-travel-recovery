@@ -27,6 +27,35 @@ function targetAreaFrom(text: string): string {
   return near?.[1]?.trim() || "JFK Airport, New York";
 }
 
+// Deliberately small and explicit — a handful of well-known cities' primary
+// IATA code, not general geocoding. Never invents a code for an unrecognized
+// destination; the flight field simply stays unset in that case.
+const CITY_TO_IATA: Record<string, string> = {
+  chicago: "ORD",
+  "los angeles": "LAX",
+  boston: "BOS",
+  miami: "MIA",
+  "san francisco": "SFO",
+  atlanta: "ATL",
+  dallas: "DFW",
+  denver: "DEN",
+  seattle: "SEA",
+  "washington": "DCA",
+};
+
+const KNOWN_CITY_PATTERN = new RegExp(
+  `\\b(${Object.keys(CITY_TO_IATA)
+    .sort((a, b) => b.length - a.length)
+    .map((city) => city.replace(/\s+/g, "\\s+"))
+    .join("|")})\\b`,
+  "i",
+);
+
+function destinationIataFrom(text: string): string | undefined {
+  const match = text.match(KNOWN_CITY_PATTERN);
+  return match ? CITY_TO_IATA[match[1].toLowerCase()] : undefined;
+}
+
 export function deterministicExtract(input: ExtractRequest): ExtractionResult {
   const text = input.transcript.trim();
   const referenceDate = input.referenceDate ?? new Date().toISOString().slice(0, 10);
@@ -64,6 +93,9 @@ export function deterministicExtract(input: ExtractRequest): ExtractionResult {
       ? "Missed connection"
       : "Urgent lodging needed after a travel disruption";
 
+  const originIata = /\bJFK\b/i.test(text) ? "JFK" : undefined;
+  const destinationIata = destinationIataFrom(text);
+
   const candidate: TripRequest = {
     mode: input.mode,
     currentLocation: /\bJFK\b/i.test(text) ? "JFK Airport, New York" : undefined,
@@ -86,6 +118,7 @@ export function deterministicExtract(input: ExtractRequest): ExtractionResult {
           },
         }
       : { event: { venue: targetAreaFrom(text) } }),
+    ...(originIata ? { flight: { originIata, destinationIata, scheduledDate: checkout } } : {}),
   };
 
   const tripRequest = tripRequestSchema.parse(candidate);

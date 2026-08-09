@@ -245,9 +245,11 @@ Alternative names to validate before repository creation:
 
 ### Explicit non-goals
 
+> **Revised August 9, 2026:** the "Flight search" line below was decided against before AeroXplorer credentials existed. With AeroXplorer integrated, LandingPad now offers *flight search assistance* — grounded web search links plus historical on-time context — never live flight search, availability, or booking. See `docs/architecture.md` for the current boundary. Airline rebooking remains a non-goal.
+
 - Completing or simulating payment
 - Automatically making a reservation
-- Flight search or airline rebooking
+- ~~Flight search~~ Flight search *assistance* only (grounded links + historical context, not live search) — see revision note above; airline rebooking remains a non-goal
 - Claiming verified safety, accessibility, or room features not supported by source data
 - Full authentication or user accounts
 - Persistent storage of Stay22 listings
