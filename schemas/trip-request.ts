@@ -2,6 +2,14 @@ import { z } from "zod";
 
 const isoDateSchema = z.iso.date();
 
+export const flightSchema = z.object({
+  airlineCode: z.string().trim().min(1).max(4).transform((value) => value.toUpperCase()).optional(),
+  flightNumber: z.string().trim().min(1).max(6).optional(),
+  originIata: z.string().trim().length(3).transform((value) => value.toUpperCase()).optional(),
+  destinationIata: z.string().trim().length(3).transform((value) => value.toUpperCase()).optional(),
+  scheduledDate: isoDateSchema.optional(),
+});
+
 export const tripRequestSchema = z
   .object({
     mode: z.enum(["recovery", "event"]),
@@ -33,6 +41,7 @@ export const tripRequestSchema = z
         endsAt: z.iso.datetime().optional(),
       })
       .optional(),
+    flight: flightSchema.optional(),
   })
   .superRefine((value, context) => {
     if (value.checkout <= value.checkin) {

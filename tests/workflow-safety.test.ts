@@ -82,3 +82,31 @@ describe("no AeroXplorer credential names leak into browser-facing code", () => 
     expect(envExample).not.toMatch(/NEXT_PUBLIC_.*AEROXPLORER/i);
   });
 });
+
+describe("AeroXplorer stays outside hotel eligibility logic", () => {
+  it("the client component never imports the server-only AeroXplorer adapter directly", async () => {
+    const source = await read("components/landingpad/landingpad-experience.tsx");
+    expect(source).not.toMatch(/from ["']@\/lib\/aeroxplorer/);
+    // It reaches AeroXplorer only through the API route, same as every other provider.
+    expect(source).toContain("/api/aviation/context");
+  });
+
+  it("deterministic ranking and its request/response contracts never reference AeroXplorer or aviation data", async () => {
+    const rankingSource = await read("lib/ai/ranking.ts");
+    const contractsSource = await read("lib/ai/contracts.ts");
+    for (const source of [rankingSource, contractsSource]) {
+      expect(source.toLowerCase()).not.toContain("aeroxplorer");
+      expect(source.toLowerCase()).not.toContain("aviation");
+    }
+  });
+
+  it("AeroXplorer adapter modules guard against client-side execution", async () => {
+    // Matches the repository's existing convention (lib/voice/elevenlabs.ts,
+    // lib/ai/openai.ts) rather than the `server-only` package, which throws
+    // unconditionally outside Next.js's server compiler — including in Vitest.
+    for (const file of ["lib/aeroxplorer/token.ts", "lib/aeroxplorer/client.ts", "lib/aeroxplorer/normalize.ts"]) {
+      const source = await read(file);
+      expect(source).toContain('throw new Error("SERVER_ONLY_ADAPTER")');
+    }
+  });
+});

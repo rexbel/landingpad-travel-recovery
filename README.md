@@ -2,7 +2,7 @@
 
 LandingPad is a voice-first travel disruption advisor built for the Checkout Travel Hack NYC. It turns "my flight was cancelled — where can I stay tonight?" into three ranked, bookable recovery plans in under two minutes.
 
-The primary demo is a cancelled flight at JFK. ElevenLabs powers voice intake, with text as the guaranteed fallback. Stay22 supplies live accommodation data and booking links, Tavily supplies current local context, and OpenAI supports structured extraction. Every material claim is labeled by source (live, web-grounded, inferred, or demo), and no booking link opens without explicit user approval. EventStay — the same application core reconfigured for event-based stay planning — is a no-rewrite fallback available via `NEXT_PUBLIC_PRODUCT_MODE=event`.
+The primary demo is a cancelled flight at JFK. ElevenLabs powers voice intake, with text as the guaranteed fallback. Stay22 supplies live accommodation data and booking links, Tavily supplies current local context, OpenAI supports structured extraction, and AeroXplorer supplies **historical** aviation evidence (airport identity and, for an exact flight query, historical performance) — never live flight status. Every material claim is labeled by source (live, web-grounded, historical, inferred, or demo), and no booking link opens without explicit user approval. EventStay — the same application core reconfigured for event-based stay planning — is a no-rewrite fallback available via `NEXT_PUBLIC_PRODUCT_MODE=event`.
 
 ## Local setup
 
@@ -22,17 +22,19 @@ The app runs at `http://localhost:3000`.
 - **ElevenLabs** returns a clear "voice unavailable" response with no key configured — text intake covers the full journey.
 - **Tavily** returns "local context unavailable" without blocking accommodation results.
 - **OpenAI** absent → structured extraction falls back to a deterministic, regex-based parser tuned for the seeded JFK scenario.
+- **AeroXplorer** absent → the historical-evidence panel reports itself unavailable; the hotel-recovery journey is completely unaffected either way.
 
 This means `npm run dev` with an empty `.env.local` (or none at all) still demonstrates the complete five-screen flow end to end, labeled as demo data throughout.
 
 ## Credential-safe preflight
 
 ```bash
-npm run preflight        # default: reports each provider's configuration status only — makes zero network calls
-npm run preflight:live   # opt-in: performs one authenticated request per configured provider
+npm run preflight                    # default: reports each provider's configuration status only — makes zero network calls
+npm run preflight:live               # opt-in: performs one authenticated request per configured provider
+npm run preflight:live:aeroxplorer   # opt-in: AeroXplorer only (token + one JFK airport lookup)
 ```
 
-`preflight:live` is the only command in this repo that contacts a provider. Never run it without deliberately intending to — it will make a real request to any provider with credentials present, including Stay22's keyless demo endpoint.
+`preflight:live*` commands are the only ones in this repo that contact a provider. Never run them without deliberately intending to — they make a real request to any provider with credentials present, including Stay22's keyless demo endpoint. The manual, credential-gated **Provider credential preflight** GitHub Actions workflow can also be run scoped to AeroXplorer only (Actions tab → Run workflow → `provider: aeroxplorer`).
 
 ## Provider roles
 
@@ -42,6 +44,17 @@ npm run preflight:live   # opt-in: performs one authenticated request per config
 | **ElevenLabs** | Browser voice conversation for intake | No — text intake is the guaranteed path |
 | **Tavily** | Narrow, cited local-context search (transport, food, essentials) | No — plans render without it |
 | **OpenAI** | Natural-language → structured `TripRequest` extraction | No — deterministic extraction is the fallback |
+| **AeroXplorer** | Historical aviation evidence: airport identity + historical flight performance for an exact query | No — the evidence panel simply reports itself unavailable |
+
+### AeroXplorer: historical aviation evidence
+
+AeroXplorer is a **historical** evidence provider, not a live flight-status feed — every statement it produces is labeled "Historical aviation data" / "AeroXplorer historical records" and includes a retrieval timestamp. It can never determine hotel eligibility, override a user-confirmed constraint, or claim a flight is currently cancelled.
+
+- **Airport resolution** happens whenever a request resolves to a recognizable airport (e.g. the canonical "our flight out of JFK was cancelled" demo) — this is metadata only, no historical query.
+- **Historical flight performance** is only queried when the request has an exact airline, flight number, origin airport, and date — a deterministic, tested function (`buildExactFlightHistoryQuery`) makes this call. An airport alone never triggers it.
+- **Server-only credentials:** `AEROXPLORER_API_KEY`, `AEROXPLORER_API_SECRET`, optional `AEROXPLORER_API_BASE_URL` (defaults to `https://api.aeroxplorer.com`). Never exposed to the client.
+- **Token lifecycle:** cached in server-process memory, refreshed 5 minutes before its documented expiration, single-flight for concurrent requests, cleared and retried exactly once on a `401`. This module-level cache is fine for one hackathon server instance but is **not** a multi-instance strategy — a horizontally scaled deployment would need a centralized token broker so instances don't invalidate each other's tokens.
+- **Limitations:** rates (cancellation/delay/diversion) are computed from whatever sample AeroXplorer's historical database returns for the narrow query (bounded to 100 records), each with its own explicit denominator — they are a historical sample, not a forecast, and are never presented as one.
 
 ## Safety boundaries
 
@@ -49,6 +62,7 @@ npm run preflight:live   # opt-in: performs one authenticated request per config
 - Server credentials never reach the client; `NEXT_PUBLIC_*` variables carry no secrets.
 - `.env.local` is gitignored and is never read, logged, or committed by tooling in this repo.
 - The model may extract, summarize, and explain — it may never invent a price, availability, amenity, or booking link.
+- AeroXplorer may explain airport or historical operating context — it never decides hotel eligibility, never overrides a user-confirmed constraint, and never claims live flight status.
 
 ## Primary demo flow
 

@@ -9,6 +9,7 @@ import {
   seededPlans,
 } from "@/lib/data/demo-cases";
 import type { HandoffResult } from "@/lib/ai/contracts";
+import type { AviationContext } from "@/schemas/aviation-context";
 import {
   appendUserTranscript,
   deriveVoiceUIState,
@@ -76,6 +77,10 @@ function isHandoffResult(value: unknown): value is HandoffResult {
   return Boolean(value && typeof value === "object" && "summary" in value && "requiresApproval" in value);
 }
 
+function isAviationContext(value: unknown): value is AviationContext {
+  return Boolean(value && typeof value === "object" && "mode" in value && "evidence" in value);
+}
+
 const fallbackSummary =
   "Advisor summary is temporarily unavailable. Verify the selected stay's price, availability, and terms directly with the supplier before booking.";
 
@@ -83,6 +88,7 @@ function sourceLabel(source: RecoveryPlan["stay"]["sourceMode"]) {
   return {
     "stay22-live": "Stay22 live",
     "tavily-web": "Tavily web",
+    "aeroxplorer-historical": "AeroXplorer historical",
     inference: "Model inference",
     user: "Confirmed by you",
     demo: "Demo data",
@@ -128,10 +134,11 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const [isRequestingMic, setIsRequestingMic] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
-  const [searchState, setSearchState] = useState<Record<string, SearchState>>({ stays: "waiting", context: "waiting", ranking: "waiting" });
+  const [searchState, setSearchState] = useState<Record<string, SearchState>>({ stays: "waiting", context: "waiting", ranking: "waiting", aviation: "waiting" });
   const [approval, setApproval] = useState<RecoveryPlan | null>(null);
   const [copied, setCopied] = useState(false);
   const [handoffResult, setHandoffResult] = useState<HandoffResult | null>(null);
+  const [aviationContext, setAviationContext] = useState<AviationContext | null>(null);
 
   const conversation = useConversation({
     onMessage: (payload) => {
@@ -163,6 +170,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     setApproval(null);
     setCopied(false);
     setHandoffResult(null);
+    setAviationContext(null);
   }
 
   async function startVoice() {
@@ -226,10 +234,36 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     setStep("brief");
   }
 
+  // Independent of the hotel/context/ranking chain below — AeroXplorer failure
+  // must never block or delay Stay22, Tavily, ranking, or the approval gate.
+  async function fetchAviationContext() {
+    setSearchState((state) => ({ ...state, aviation: "working" }));
+    try {
+      const response = await fetch("/api/aviation/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentLocation: request.currentLocation,
+          targetArea: request.targetArea,
+          flight: request.flight,
+        }),
+      });
+      const data = apiData(await response.json());
+      if (!response.ok || !isAviationContext(data)) throw new Error("Aviation context unavailable");
+      setAviationContext(data);
+      setSearchState((state) => ({ ...state, aviation: data.mode === "unavailable" ? "fallback" : "done" }));
+    } catch {
+      setAviationContext(null);
+      setSearchState((state) => ({ ...state, aviation: "fallback" }));
+    }
+  }
+
   async function search() {
     setStep("search");
     setNotice(null);
-    setSearchState({ stays: "working", context: "waiting", ranking: "waiting" });
+    setSearchState({ stays: "working", context: "waiting", ranking: "waiting", aviation: "waiting" });
+    setAviationContext(null);
+    void fetchAviationContext();
     let liveStays: StayOption[] = [];
     let localContext: unknown[] = [];
     try {
@@ -428,6 +462,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <SearchRow label="Dated accommodation options" vendor="Stay22" state={searchState.stays} />
               <SearchRow label="Nearby essentials and context" vendor="Tavily" state={searchState.context} />
               <SearchRow label="Eligibility and plan ranking" vendor="LandingPad" state={searchState.ranking} />
+              <SearchRow label="Historical operating context" vendor="AeroXplorer" state={searchState.aviation} />
             </div>
             <p>Each source can finish independently. Partial results stay useful.</p>
           </div>
@@ -439,6 +474,45 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <div><span className="lp-kicker">Three eligible strategies</span><h1>Choose your landing</h1><p>Prices are full-stay totals. Verify supplier terms before booking.</p></div>
               <button className="lp-secondary compact" onClick={() => setStep("brief")}>Edit constraints</button>
             </div>
+            {aviationContext && aviationContext.mode !== "unavailable" && (
+              <div className="lp-aviation-evidence">
+                <div className="lp-aviation-heading">
+                  <span className="lp-kicker">Historical operating context</span>
+                  <span className="lp-source-badge aeroxplorer">AeroXplorer historical records</span>
+                </div>
+                {aviationContext.airport && (
+                  <p className="lp-aviation-airport">
+                    {aviationContext.airport.name} ({aviationContext.airport.iata})
+                  </p>
+                )}
+                {aviationContext.historicalFlight ? (
+                  <div className="lp-aviation-stats">
+                    <span>
+                      {aviationContext.historicalFlight.observations} observed flight
+                      {aviationContext.historicalFlight.observations === 1 ? "" : "s"}
+                      {aviationContext.historicalFlight.observationWindow ? ` · ${aviationContext.historicalFlight.observationWindow}` : ""}
+                    </span>
+                    {aviationContext.historicalFlight.cancellationRate !== undefined && (
+                      <span>{Math.round(aviationContext.historicalFlight.cancellationRate * 100)}% historically cancelled</span>
+                    )}
+                    {aviationContext.historicalFlight.delayRate !== undefined && (
+                      <span>{Math.round(aviationContext.historicalFlight.delayRate * 100)}% historically delayed 15+ min</span>
+                    )}
+                    {aviationContext.historicalFlight.diversionRate !== undefined && (
+                      <span>{Math.round(aviationContext.historicalFlight.diversionRate * 100)}% historically diverted</span>
+                    )}
+                  </div>
+                ) : (
+                  <p className="lp-aviation-skip">
+                    {aviationContext.warnings[0] ?? "Flight-specific history wasn't queried — only airport identity is shown."}
+                  </p>
+                )}
+                <p className="lp-aviation-disclaimer">Historical performance does not confirm today’s flight status.</p>
+              </div>
+            )}
+            {aviationContext?.mode === "unavailable" && (
+              <p className="lp-aviation-skip">Historical aviation context is unavailable right now — hotel results are unaffected.</p>
+            )}
             {plans.length === 0 ? (
               <div className="lp-empty-state">
                 <span className="lp-empty-icon">0</span>
@@ -499,7 +573,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
         )}
       </section>
 
-      <footer className="lp-footer"><span>Live travel data by <strong>Stay22</strong></span><span>Voice by <strong>ElevenLabs</strong></span><span>Grounded context by <strong>Tavily</strong></span><span className="lp-advisor">Built for advisor-ready recovery · Anecdote Travel prize alignment</span></footer>
+      <footer className="lp-footer"><span>Live travel data by <strong>Stay22</strong></span><span>Voice by <strong>ElevenLabs</strong></span><span>Grounded context by <strong>Tavily</strong></span><span>Historical aviation data by <strong>AeroXplorer</strong></span><span className="lp-advisor">Built for advisor-ready recovery · Anecdote Travel prize alignment</span></footer>
 
       {approval && (
         <div className="lp-modal-backdrop" role="presentation" onMouseDown={() => setApproval(null)}>
