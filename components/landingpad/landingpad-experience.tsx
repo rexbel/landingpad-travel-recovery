@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import type { ProductMode } from "@/lib/config/product-mode";
 import {
   primaryPrompt,
   primaryTripRequest,
   seededPlans,
 } from "@/lib/data/demo-cases";
+import type { HandoffResult } from "@/lib/ai/contracts";
+import {
+  appendUserTranscript,
+  deriveVoiceUIState,
+  voiceStatusNotice,
+  type MicPermission,
+} from "@/lib/voice/conversation";
 import type { RecoveryPlan } from "@/schemas/recovery-plan";
 import type { StayOption } from "@/schemas/stay-option";
 import type { TripRequest } from "@/schemas/trip-request";
@@ -59,6 +67,18 @@ function apiData(value: unknown): unknown {
   return undefined;
 }
 
+function apiMode(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  return "mode" in value && typeof value.mode === "string" ? value.mode : undefined;
+}
+
+function isHandoffResult(value: unknown): value is HandoffResult {
+  return Boolean(value && typeof value === "object" && "summary" in value && "requiresApproval" in value);
+}
+
+const fallbackSummary =
+  "Advisor summary is temporarily unavailable. Verify the selected stay's price, availability, and terms directly with the supplier before booking.";
+
 function sourceLabel(source: RecoveryPlan["stay"]["sourceMode"]) {
   return {
     "stay22-live": "Stay22 live",
@@ -90,66 +110,111 @@ function Icon({ name }: { name: "mic" | "arrow" | "check" | "copy" | "plane" | "
 }
 
 export function LandingPadExperience({ mode }: { mode: ProductMode }) {
+  return (
+    <ConversationProvider>
+      <LandingPadExperienceInner mode={mode} />
+    </ConversationProvider>
+  );
+}
+
+function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const isEvent = mode === "event";
   const [step, setStep] = useState<Step>("start");
   const [prompt, setPrompt] = useState(isEvent ? eventPrompt : primaryPrompt);
   const [request, setRequest] = useState<TripRequest>(() => initialRequest(mode));
   const [plans, setPlans] = useState<RecoveryPlan[]>(seededPlans);
   const [selected, setSelected] = useState<RecoveryPlan | null>(null);
-  const [voiceState, setVoiceState] = useState<"idle" | "connecting" | "ready" | "failed">("idle");
+  const [micPermission, setMicPermission] = useState<MicPermission>("unknown");
+  const [isRequestingMic, setIsRequestingMic] = useState(false);
+  const [transcript, setTranscript] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [searchState, setSearchState] = useState<Record<string, SearchState>>({ stays: "waiting", context: "waiting", ranking: "waiting" });
   const [approval, setApproval] = useState<RecoveryPlan | null>(null);
   const [copied, setCopied] = useState(false);
+  const [handoffResult, setHandoffResult] = useState<HandoffResult | null>(null);
+
+  const conversation = useConversation({
+    onMessage: (payload) => {
+      setTranscript((current) => appendUserTranscript(current, { role: payload.role, message: payload.message }));
+    },
+    onError: () => setNotice(voiceStatusNotice("failed")),
+    onDisconnect: (details) => {
+      if (details.reason === "error") setNotice(voiceStatusNotice("failed"));
+    },
+  });
+
+  const voiceUIState = deriveVoiceUIState({ isRequestingMic, micPermission, status: conversation.status });
 
   const activeIndex = ["start", "brief", "search", "compare", "handoff"].indexOf(step);
   const steps = isEvent ? eventSteps : recoverySteps;
-
-  const summary = useMemo(() => {
-    if (!selected) return "";
-    return [
-      `${isEvent ? "Event stay request" : "Travel recovery request"}: ${request.adults} adult${request.adults === 1 ? "" : "s"}, ${request.rooms} room${request.rooms === 1 ? "" : "s"}, ${request.checkin} to ${request.checkout}.`,
-      `Confirmed budget: ${request.currency} ${request.hardBudgetTotal ?? "not set"} total. Target area: ${request.targetArea}.`,
-      `Selected option: ${selected.stay.name} at ${selected.stay.currency} ${selected.stay.totalPrice} total (${sourceLabel(selected.stay.sourceMode)}).`,
-      `Open questions: ${request.uncertainties.length ? request.uncertainties.join("; ") : "None recorded."}`,
-      `Advisor note: Verify all unconfirmed amenities, travel times, and supplier terms before booking. No reservation has been made.`,
-    ].join("\n");
-  }, [isEvent, request, selected]);
+  const summary = handoffResult?.summary ?? fallbackSummary;
 
   function reset() {
+    conversation.endSession();
     setStep("start");
     setPrompt(isEvent ? eventPrompt : primaryPrompt);
     setRequest(initialRequest(mode));
     setPlans(seededPlans);
     setSelected(null);
-    setVoiceState("idle");
+    setMicPermission("unknown");
+    setIsRequestingMic(false);
+    setTranscript("");
     setNotice(null);
     setApproval(null);
     setCopied(false);
+    setHandoffResult(null);
   }
 
   async function startVoice() {
-    setVoiceState("connecting");
     setNotice(null);
+    setIsRequestingMic(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+    } catch {
+      setIsRequestingMic(false);
+      setMicPermission("denied");
+      setNotice(voiceStatusNotice("mic-denied"));
+      return;
+    }
+    setMicPermission("granted");
     try {
       const response = await fetch("/api/voice/signed-url", { cache: "no-store" });
-      const payload = await response.json();
-      if (!response.ok || !apiData(payload)) throw new Error("Voice unavailable");
-      setVoiceState("ready");
-      setNotice("Secure voice session is ready. Text remains available if you prefer it.");
+      const payload = apiData(await response.json());
+      const signedUrl =
+        payload && typeof payload === "object" && "signedUrl" in payload && typeof payload.signedUrl === "string"
+          ? payload.signedUrl
+          : undefined;
+      if (!response.ok || !signedUrl) throw new Error("Voice unavailable");
+      setTranscript("");
+      conversation.startSession({ signedUrl });
     } catch {
-      setVoiceState("failed");
       setNotice("Voice is unavailable right now. Your request is preserved—continue with text.");
+    } finally {
+      setIsRequestingMic(false);
     }
   }
 
-  async function createBrief() {
+  function cancelVoice() {
+    conversation.endSession();
+  }
+
+  function finishVoiceAndContinue() {
+    const spoken = transcript.trim();
+    conversation.endSession();
+    if (spoken) {
+      setPrompt(spoken);
+      void createBrief(spoken);
+    }
+  }
+
+  async function createBrief(text: string = prompt) {
     setNotice(null);
     try {
       const response = await fetch("/api/recovery/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: prompt, mode }),
+        body: JSON.stringify({ transcript: text, mode }),
       });
       const payload = apiData(await response.json());
       const extracted = payload && typeof payload === "object" && "tripRequest" in payload ? payload.tripRequest : payload;
@@ -177,10 +242,12 @@ export function LandingPadExperience({ mode }: { mode: ProductMode }) {
         currency: request.currency,
       });
       const response = await fetch(`/api/stays/search?${params}`);
-      const data = apiData(await response.json());
+      const payload = await response.json();
+      const data = apiData(payload);
       if (!response.ok || !isStayArray(data) || data.length === 0) throw new Error("No stays");
       liveStays = data;
-      setSearchState((state) => ({ ...state, stays: "done", context: "working" }));
+      const isLive = apiMode(payload) === "stay22-live";
+      setSearchState((state) => ({ ...state, stays: isLive ? "done" : "fallback", context: "working" }));
     } catch {
       setSearchState((state) => ({ ...state, stays: "fallback", context: "working" }));
     }
@@ -226,15 +293,28 @@ export function LandingPadExperience({ mode }: { mode: ProductMode }) {
     setRequest((current) => ({ ...current, [key]: value }));
   }
 
-  function proceedToHandoff(plan: RecoveryPlan) {
+  async function proceedToHandoff(plan: RecoveryPlan) {
     setSelected(plan);
     setApproval(null);
     setStep("handoff");
+    setHandoffResult(null);
+    try {
+      const response = await fetch("/api/recovery/handoff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripRequest: request, selectedPlan: plan, openQuestions: [] }),
+      });
+      const data = apiData(await response.json());
+      if (!response.ok || !isHandoffResult(data)) throw new Error("No handoff");
+      setHandoffResult(data);
+    } catch {
+      setNotice("Advisor summary is temporarily unavailable. Core details are still shown below.");
+    }
   }
 
   function openApprovedLink(plan: RecoveryPlan) {
     window.open(plan.stay.bookingUrl, "_blank", "noopener,noreferrer");
-    proceedToHandoff(plan);
+    void proceedToHandoff(plan);
   }
 
   async function copySummary() {
@@ -270,21 +350,47 @@ export function LandingPadExperience({ mode }: { mode: ProductMode }) {
             <h1>{isEvent ? "Stay near what matters." : "Tell us what changed."}</h1>
             <p className="lp-lede">{isEvent ? "Turn an event into three clear, bookable stay strategies." : "Speak naturally. We’ll turn the disruption into a clear, editable recovery brief."}</p>
 
-            <button className={`lp-voice ${voiceState === "connecting" ? "is-listening" : ""}`} onClick={startVoice} disabled={voiceState === "connecting"}>
-              <span><Icon name="mic" /></span>
-              <strong>{voiceState === "connecting" ? "Connecting securely…" : voiceState === "ready" ? "Voice session ready" : "Start with voice"}</strong>
-              <small>Powered by ElevenLabs · text always available</small>
-            </button>
+            {voiceUIState === "connected" ? (
+              <div className="lp-voice is-listening" role="group" aria-label="Voice conversation in progress">
+                <span><Icon name="mic" /></span>
+                <strong>Listening — say what happened</strong>
+                <small>{transcript ? "Transcript captured · end when ready" : "Powered by ElevenLabs · speak naturally"}</small>
+              </div>
+            ) : (
+              <button
+                className={`lp-voice ${voiceUIState === "connecting" || voiceUIState === "requesting-mic" ? "is-listening" : ""}`}
+                onClick={startVoice}
+                disabled={voiceUIState === "connecting" || voiceUIState === "requesting-mic"}
+              >
+                <span><Icon name="mic" /></span>
+                <strong>
+                  {voiceUIState === "requesting-mic"
+                    ? "Requesting microphone…"
+                    : voiceUIState === "connecting"
+                      ? "Connecting securely…"
+                      : "Start with voice"}
+                </strong>
+                <small>Powered by ElevenLabs · text always available</small>
+              </button>
+            )}
+            {voiceUIState === "connected" && (
+              <div className="lp-actions">
+                <button className="lp-secondary" onClick={cancelVoice}>End without using</button>
+                <button className="lp-primary" onClick={finishVoiceAndContinue} disabled={!transcript.trim()}>
+                  Use this &amp; continue <Icon name="arrow" />
+                </button>
+              </div>
+            )}
 
             <div className="lp-divider"><span>or type your request</span></div>
             <label className="lp-prompt-card">
               <span>{isEvent ? "Event and stay details" : "What happened?"}</span>
               <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={5} />
-              <button className="lp-primary" onClick={createBrief} disabled={!prompt.trim()}>
+              <button className="lp-primary" onClick={() => createBrief()} disabled={!prompt.trim()}>
                 Build my brief <Icon name="arrow" />
               </button>
             </label>
-            {notice && <div className={`lp-notice ${voiceState === "failed" ? "is-error" : ""}`}>{notice}</div>}
+            {notice && <div className={`lp-notice ${voiceUIState === "failed" || voiceUIState === "mic-denied" ? "is-error" : ""}`}>{notice}</div>}
             <p className="lp-approval-note"><Icon name="shield" /> Nothing is booked or purchased without your explicit approval.</p>
           </div>
         )}
@@ -374,6 +480,18 @@ export function LandingPadExperience({ mode }: { mode: ProductMode }) {
               <div><span>Selected stay</span><strong>{selected.stay.name}</strong><small>{selected.stay.currency} {selected.stay.totalPrice} total · {sourceLabel(selected.stay.sourceMode)}</small></div>
               <div><span>Status</span><strong>Not booked</strong><small>Supplier verification and checkout remain with you.</small></div>
             </div>
+            {handoffResult && handoffResult.confirmedFacts.length > 0 && (
+              <div className="lp-uncertainties">
+                <strong>Confirmed facts</strong>
+                <div>{handoffResult.confirmedFacts.map((item) => <span key={item}>{item}</span>)}</div>
+              </div>
+            )}
+            {handoffResult && handoffResult.openQuestions.length > 0 && (
+              <div className="lp-uncertainties">
+                <strong>Open questions</strong>
+                <div>{handoffResult.openQuestions.map((item) => <span key={item}>{item}</span>)}</div>
+              </div>
+            )}
             <label className="lp-summary"><span>Copyable handoff summary</span><textarea readOnly value={summary} rows={8} /></label>
             <div className="lp-actions"><button className="lp-secondary" onClick={copySummary}><Icon name="copy" /> {copied ? "Copied" : "Copy summary"}</button><button className="lp-primary" onClick={() => setApproval(selected)}>Open supplier page <Icon name="arrow" /></button></div>
             <button className="lp-text-button centered" onClick={reset}>Plan another recovery</button>

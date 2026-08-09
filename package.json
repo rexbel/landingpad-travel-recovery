@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "preflight": "node scripts/integration-preflight.mjs",
+    "preflight:live": "node scripts/integration-preflight.mjs --live",
     "test": "vitest run",
     "test:watch": "vitest"
   },
