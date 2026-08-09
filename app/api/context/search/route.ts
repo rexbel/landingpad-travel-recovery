@@ -3,7 +3,10 @@ import { searchLocalContext } from "@/lib/tavily";
 import type { ApiResult } from "@/schemas/api-result";
 import type { LocalContextItem } from "@/schemas/recovery-plan";
 
-const requestSchema = z.object({ query: z.string().trim().min(3).max(500) });
+const requestSchema = z.object({
+  query: z.string().trim().min(3).max(500),
+  appMode: z.enum(["demo", "active"]).optional(),
+});
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -20,6 +23,15 @@ export async function POST(request: Request) {
       fallbackAvailable: false,
     };
     return Response.json(body, { status: 400 });
+  }
+
+  if (parsed.data.appMode === "demo") {
+    const body: ApiResult<LocalContextItem[]> = {
+      ok: false,
+      error: { code: "TAVILY_DEMO_MODE", message: "Local context is unavailable in demo mode.", retryable: false },
+      fallbackAvailable: false,
+    };
+    return Response.json(body, { status: 503 });
   }
 
   const result = await searchLocalContext(parsed.data.query);

@@ -4,8 +4,9 @@ import { getSignedVoiceUrl, type SignedVoiceUrl } from "@/lib/voice/elevenlabs";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(): Promise<Response> {
-  if (!process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_AGENT_ID) {
+export async function GET(request: Request): Promise<Response> {
+  const appMode = new URL(request.url).searchParams.get("appMode");
+  if (appMode === "demo" || !process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_AGENT_ID) {
     const result: ApiResult<never> = {
       ok: false,
       error: {

@@ -13,7 +13,9 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = extractRequestSchema.safeParse(body);
   if (!parsed.success) return invalidRequest();
   try {
-    const data = extractionResultSchema.parse(await extractTripRequest(parsed.data));
+    const data = extractionResultSchema.parse(
+      await extractTripRequest(parsed.data, { forceDemo: parsed.data.appMode === "demo" }),
+    );
     const result: ApiResult<ExtractionResult> = { ok: true, data, mode: data.extractionMode };
     return Response.json(result);
   } catch {

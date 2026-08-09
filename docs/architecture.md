@@ -29,6 +29,21 @@ ranking, handoff, or the approval gate.
 
 The browser receives normalized application data, not provider credentials or raw provider errors. Stay22, Tavily, ElevenLabs, OpenAI, and AeroXplorer calls originate in server routes. Zod schemas validate both incoming user data and upstream responses. AeroXplorer's adapter (`lib/aeroxplorer/`) and the flight-recovery adapter (`lib/flight-recovery/`) additionally guard every exported entry point against client-side execution, matching the pattern already used by the ElevenLabs and OpenAI adapters.
 
+## Demo mode vs. Active mode
+
+A client-side `appMode: "demo" | "active"` toggle (header UI, defaults to `"demo"`) is sent on every request. Each route checks it as an early, explicit short-circuit — before touching any adapter:
+
+- `POST /api/recovery/extract` — `appMode: "demo"` forces `extractTripRequest`'s `forceDemo` option, always using the deterministic extractor even if `OPENAI_API_KEY` is configured.
+- `GET /api/stays/search` — forces `searchStays`'s `forceDemo` option, returning Stay22's own demo fixtures without any network attempt (not a failure fallback — no `warning` attached).
+- `POST /api/context/search`, `POST /api/aviation/context`, `POST /api/flight-recovery/context` — return their existing "unavailable" shape immediately, without calling into `lib/tavily`, `lib/aeroxplorer`, or `lib/flight-recovery` at all.
+- `GET /api/voice/signed-url` — returns `VOICE_NOT_CONFIGURED` immediately; the client also disables the voice button entirely in Demo mode as the primary gate.
+
+This is a strictly additive, deterministic layer on top of the credential-presence fallback that already existed — `"demo"` behaves exactly like "no credentials configured" by construction, so no new fixture data was invented for any provider beyond Stay22's pre-existing demo fixtures. `"active"` is the app's original default: attempt real calls where credentials exist, degrade gracefully otherwise.
+
+## Voice: active questioning
+
+The ElevenLabs conversation (Active mode only) opens with a session-start override rather than passively waiting for the traveler to speak first: `overrides.agent.firstMessage` asks "what happened, and do you need a hotel, an alternate flight, or both?", and `overrides.agent.prompt` steers the rest of the conversation the same way. This requires the ElevenLabs agent's dashboard security settings to permit first-message/prompt overrides — a manual, one-time dashboard configuration step outside this codebase. If overrides aren't permitted, the call still connects using the agent's own configured behavior; nothing breaks either way. The traveler's spoken answer flows into the same transcript passed to extraction, where `assistanceScope` (`"hotel" | "flight" | "both"`) is parsed out and used to skip the flight-recovery search when the traveler explicitly asked for hotel-only.
+
 ## Product modes
 
 `NEXT_PUBLIC_PRODUCT_MODE` accepts `recovery` or `event`. Both modes share the same `TripRequest`, Stay22 adapter, ranking engine, plan cards, evidence labels, and booking handoff. EventStay removes disruption-specific features; it does not fork the application.

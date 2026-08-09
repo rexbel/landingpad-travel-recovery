@@ -75,6 +75,21 @@ describe("Stay22 adapter", () => {
     expect(request?.headers).toBeUndefined();
   });
 
+  it("forceDemo skips the network attempt entirely and returns undecorated demo data", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => {
+      throw new Error("must not be called in forceDemo mode");
+    });
+
+    const result = await searchStays(input("JFK demo mode"), { fetchImpl, forceDemo: true });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.mode).toBe("demo");
+    expect(result.warning).toBeUndefined();
+    expect(result.options.every((option) => option.sourceMode === "demo")).toBe(true);
+  });
+
   it("sends the server key only in the Stay22 header", async () => {
     process.env.STAY22_API_KEY = "private-test-key";
     const fetchImpl = vi.fn<typeof fetch>(async () => Response.json(responseBody()));

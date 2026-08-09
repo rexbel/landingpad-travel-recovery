@@ -29,6 +29,27 @@ describe("POST /api/flight-recovery/context", () => {
     expect(response.status).toBe(400);
   });
 
+  it("skips the live attempt entirely when appMode=demo, even with credentials configured", async () => {
+    process.env.TAVILY_API_KEY = "t";
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(() => {
+      throw new Error("no provider must be contacted in demo mode");
+    }) as unknown as typeof fetch;
+
+    try {
+      const response = await flightRecoveryContext(
+        jsonRequest({ flight: { originIata: "JFK", destinationIata: "ORD", scheduledDate: "2026-08-10" }, appMode: "demo" }),
+      );
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      expect(payload.data.mode).toBe("unavailable");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("degrades to unavailable without any provider configured, never throwing", async () => {
     const response = await flightRecoveryContext(
       jsonRequest({ flight: { originIata: "JFK", destinationIata: "ORD", scheduledDate: "2026-08-10" } }),

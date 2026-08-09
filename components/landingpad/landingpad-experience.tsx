@@ -30,6 +30,14 @@ const eventSteps = ["Event", "Confirm", "Search", "Compare", "Share"];
 const eventPrompt =
   "I’m attending Checkout Travel Hack NYC on August 9. Find one room nearby for two adults, under $350 total, with an easy trip back after the event.";
 
+// Requires the ElevenLabs agent's dashboard settings to allow first-message
+// and prompt overrides — otherwise the agent falls back to its own configured
+// behavior, and the app still degrades gracefully either way.
+const VOICE_FIRST_MESSAGE =
+  "Hi, I'm LandingPad's recovery assistant. What happened, and do you need help with a hotel, an alternate flight, or both?";
+const VOICE_AGENT_PROMPT =
+  "You are LandingPad's travel disruption recovery assistant. First ask what happened. Then ask, as its own question, whether the traveler needs hotel accommodations, an alternate flight, or both — wait for their answer before moving on. Ask one short question at a time. Once you have the disruption summary and which assistance they need, briefly confirm what you heard and let them know LandingPad will build a recovery brief from it. Never promise a specific price, availability, or booking — LandingPad only surfaces options for the traveler to review and approve themselves.";
+
 function initialRequest(mode: ProductMode): TripRequest {
   if (mode === "recovery") return structuredClone(primaryTripRequest);
   const { disruption: _disruption, ...shared } = primaryTripRequest;
@@ -130,6 +138,11 @@ export function LandingPadExperience({ mode }: { mode: ProductMode }) {
 
 function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const isEvent = mode === "event";
+  // Demo mode deliberately forces every server route to its seeded/fallback
+  // path — no live provider is ever contacted, regardless of configured
+  // credentials. Active mode is today's default: attempt real calls,
+  // degrade gracefully. Demo is the safer default for a live presentation.
+  const [appMode, setAppMode] = useState<"demo" | "active">("demo");
   const [step, setStep] = useState<Step>("start");
   const [prompt, setPrompt] = useState(isEvent ? eventPrompt : primaryPrompt);
   const [request, setRequest] = useState<TripRequest>(() => initialRequest(mode));
@@ -183,6 +196,10 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   }
 
   async function startVoice() {
+    if (appMode === "demo") {
+      setNotice("Voice calls the live ElevenLabs agent, so it's disabled in Demo mode. Switch to Active mode to use it.");
+      return;
+    }
     setNotice(null);
     setIsRequestingMic(true);
     try {
@@ -196,7 +213,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     }
     setMicPermission("granted");
     try {
-      const response = await fetch("/api/voice/signed-url", { cache: "no-store" });
+      const response = await fetch("/api/voice/signed-url?appMode=active", { cache: "no-store" });
       const payload = apiData(await response.json());
       const signedUrl =
         payload && typeof payload === "object" && "signedUrl" in payload && typeof payload.signedUrl === "string"
@@ -204,7 +221,15 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
           : undefined;
       if (!response.ok || !signedUrl) throw new Error("Voice unavailable");
       setTranscript("");
-      conversation.startSession({ signedUrl });
+      conversation.startSession({
+        signedUrl,
+        overrides: {
+          agent: {
+            firstMessage: VOICE_FIRST_MESSAGE,
+            prompt: { prompt: VOICE_AGENT_PROMPT },
+          },
+        },
+      });
     } catch {
       setNotice("Voice is unavailable right now. Your request is preserved—continue with text.");
     } finally {
@@ -231,7 +256,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
       const response = await fetch("/api/recovery/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: text, mode }),
+        body: JSON.stringify({ transcript: text, mode, appMode }),
       });
       const payload = apiData(await response.json());
       const extracted = payload && typeof payload === "object" && "tripRequest" in payload ? payload.tripRequest : payload;
@@ -255,6 +280,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
           currentLocation: request.currentLocation,
           targetArea: request.targetArea,
           flight: request.flight,
+          appMode,
         }),
       });
       const data = apiData(await response.json());
@@ -271,12 +297,18 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   // flight search never blocks or is blocked by hotel search, ranking, or
   // the approval gate. Assistance only, never a bookable flight.
   async function fetchFlightRecovery() {
+    if (request.assistanceScope === "hotel") {
+      // The traveler explicitly said hotel-only — don't search or show
+      // flight options they didn't ask for.
+      setSearchState((state) => ({ ...state, flights: "done" }));
+      return;
+    }
     setSearchState((state) => ({ ...state, flights: "working" }));
     try {
       const response = await fetch("/api/flight-recovery/context", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ flight: request.flight ?? {} }),
+        body: JSON.stringify({ flight: request.flight ?? {}, appMode }),
       });
       const data = apiData(await response.json());
       if (!response.ok || !isFlightRecoveryContext(data)) throw new Error("Flight recovery unavailable");
@@ -306,6 +338,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
         adults: String(request.adults),
         rooms: String(request.rooms),
         currency: request.currency,
+        appMode,
       });
       const response = await fetch(`/api/stays/search?${params}`);
       const payload = await response.json();
@@ -322,7 +355,10 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
       const response = await fetch("/api/context/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `${request.targetArea}: late-night food and ground transportation relevant to ${request.checkin}` }),
+        body: JSON.stringify({
+          query: `${request.targetArea}: late-night food and ground transportation relevant to ${request.checkin}`,
+          appMode,
+        }),
       });
       const data = apiData(await response.json());
       if (!response.ok || !Array.isArray(data)) throw new Error("No context");
@@ -357,6 +393,10 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 
   function update<K extends keyof TripRequest>(key: K, value: TripRequest[K]) {
     setRequest((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleAppMode() {
+    setAppMode((current) => (current === "demo" ? "active" : "demo"));
   }
 
   async function proceedToHandoff(plan: RecoveryPlan) {
@@ -402,6 +442,15 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
           <span>{isEvent ? "EventStay" : "LandingPad"}</span>
         </button>
         <div className="lp-mode-pill"><span /> {isEvent ? "Event planning" : "Recovery mode"}</div>
+        <button
+          className={`lp-app-mode-toggle is-${appMode}`}
+          onClick={toggleAppMode}
+          aria-pressed={appMode === "active"}
+          title={appMode === "demo" ? "Seeded/fallback data only — no live provider calls" : "Attempts real provider calls where configured"}
+        >
+          <span />
+          {appMode === "demo" ? "Demo mode" : "Active mode"}
+        </button>
         {step !== "start" && <button className="lp-text-button" onClick={reset}>Start over</button>}
       </header>
 

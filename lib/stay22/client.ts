@@ -97,6 +97,12 @@ function withDemoFallback(failure: Stay22SearchResult & { ok: false }, currency:
   };
 }
 
+/** Deliberately chosen demo data (Demo mode), not a fallback from a failure — no warning attached. */
+function demoOnlyResult(currency: string): Stay22SearchResult {
+  const fixture = stay22ResponseSchema.parse(createStay22DemoFixture(currency));
+  return { ok: true, options: normalize(fixture, "demo"), mode: "demo" };
+}
+
 async function performSearch(
   input: z.output<typeof searchInputSchema>,
   options: { fetchImpl: FetchLike; timeoutMs: number; fallbackToDemo: boolean },
@@ -165,9 +171,11 @@ async function performSearch(
 
 export function searchStays(
   rawInput: Stay22SearchInput,
-  options: { fetchImpl?: FetchLike; timeoutMs?: number; fallbackToDemo?: boolean } = {},
+  options: { fetchImpl?: FetchLike; timeoutMs?: number; fallbackToDemo?: boolean; forceDemo?: boolean } = {},
 ): Promise<Stay22SearchResult> {
   const input = searchInputSchema.parse(rawInput);
+  if (options.forceDemo) return Promise.resolve(demoOnlyResult(input.currency));
+
   const cacheKey = JSON.stringify(input);
   const now = Date.now();
   const existing = pendingSearches.get(cacheKey);

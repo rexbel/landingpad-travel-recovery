@@ -12,6 +12,7 @@ const aviationContextRequestSchema = z.object({
   currentLocation: z.string().trim().max(200).optional(),
   targetArea: z.string().trim().min(1).max(200),
   flight: flightSchema.optional(),
+  appMode: z.enum(["demo", "active"]).optional(),
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -23,6 +24,14 @@ export async function POST(request: Request): Promise<Response> {
   }
   const parsed = aviationContextRequestSchema.safeParse(body);
   if (!parsed.success) return invalidRequest();
+
+  if (parsed.data.appMode === "demo") {
+    const body: ApiResult<AviationContext> = {
+      ok: true,
+      data: { mode: "unavailable", evidence: [], warnings: ["Aviation context is unavailable in demo mode."] },
+    };
+    return Response.json(body);
+  }
 
   try {
     const data = await getAviationContext({

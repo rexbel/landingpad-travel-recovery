@@ -43,6 +43,19 @@ const CITY_TO_IATA: Record<string, string> = {
   "washington": "DCA",
 };
 
+// Narrows scope only — ambiguous or unmentioned stays undefined ("both"
+// downstream), never expands to a service the traveler didn't ask about.
+function assistanceScopeFrom(text: string): "hotel" | "flight" | "both" | undefined {
+  const hotelOnly =
+    /\b(just|only)\s+(need\s+)?(a\s+|the\s+)?(hotel|room|accommodations?)\b/i.test(text) || /\bno\s+flight\b/i.test(text);
+  const flightOnly =
+    /\b(just|only)\s+(need\s+)?(an?\s+|the\s+)?(flight|alternate\s+flight)\b/i.test(text) || /\bno\s+hotel\b/i.test(text);
+  if (hotelOnly && !flightOnly) return "hotel";
+  if (flightOnly && !hotelOnly) return "flight";
+  if (/\bboth\b/i.test(text)) return "both";
+  return undefined;
+}
+
 const KNOWN_CITY_PATTERN = new RegExp(
   `\\b(${Object.keys(CITY_TO_IATA)
     .sort((a, b) => b.length - a.length)
@@ -95,6 +108,7 @@ export function deterministicExtract(input: ExtractRequest): ExtractionResult {
 
   const originIata = /\bJFK\b/i.test(text) ? "JFK" : undefined;
   const destinationIata = destinationIataFrom(text);
+  const assistanceScope = assistanceScopeFrom(text);
 
   const candidate: TripRequest = {
     mode: input.mode,
@@ -119,6 +133,7 @@ export function deterministicExtract(input: ExtractRequest): ExtractionResult {
         }
       : { event: { venue: targetAreaFrom(text) } }),
     ...(originIata ? { flight: { originIata, destinationIata, scheduledDate: checkout } } : {}),
+    ...(assistanceScope ? { assistanceScope } : {}),
   };
 
   const tripRequest = tripRequestSchema.parse(candidate);
