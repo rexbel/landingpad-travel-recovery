@@ -11,8 +11,12 @@ export const aeroXplorerAirportSchema = z.object({
   name: z.string().min(1),
   location: z.string().optional(),
   description: z.string().optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
+  // The live API returns these as numeric strings (e.g. "40.634638"), not
+  // JSON numbers — coerce rather than require z.number(), which rejected
+  // every real airport response outright. z.coerce.number() still rejects
+  // genuinely non-numeric input, it just also accepts "40.63".
+  lat: z.coerce.number().optional(),
+  lng: z.coerce.number().optional(),
 });
 
 export const aeroXplorerAirportResponseSchema = z.object({

@@ -49,6 +49,40 @@ describe("getAirportByIata", () => {
     delete process.env.AEROXPLORER_API_SECRET;
   });
 
+  it("accepts lat/lng as numeric strings, matching the live API's actual response shape", async () => {
+    // Confirmed against the real AeroXplorer API: lat/lng come back as
+    // strings (e.g. "40.634638"), not JSON numbers, even though the OpenAPI
+    // spec implies numbers. A plain z.number() rejected every real airport
+    // response outright — this is the exact shape that broke in production.
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const fetchImpl = vi.fn<typeof fetch>(async (url) => {
+      if (url.toString() === TOKEN_URL) return tokenResponse();
+      return Response.json({
+        results: [
+          {
+            id: "2",
+            iata: "JFK",
+            icao: "KJFK",
+            name: "John F. Kennedy International Airport",
+            location: "Queens, New York, United States",
+            description: "",
+            lat: "40.634638",
+            lng: "-73.781603",
+          },
+        ],
+      });
+    });
+
+    const result = await getAirportByIata("JFK", { fetchImpl });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.results[0]).toMatchObject({ iata: "JFK", lat: 40.634638, lng: -73.781603 });
+    delete process.env.AEROXPLORER_API_KEY;
+    delete process.env.AEROXPLORER_API_SECRET;
+  });
+
   it("fails safely on a malformed airport response", async () => {
     process.env.AEROXPLORER_API_KEY = "k";
     process.env.AEROXPLORER_API_SECRET = "s";
