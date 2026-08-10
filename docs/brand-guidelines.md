@@ -36,6 +36,7 @@ Extends the existing tokens in `app/globals.css` — nothing was replaced:
 - **Arc paths** — a single dashed arc with a start/end waypoint dot (`RouteArc` primitive), standing in for "the route so far," used in the hero illustration and the advisor-handoff icon.
 - **Waypoint** — a ringed dot, for airports and named locations.
 - **Water-drop** — a single teardrop accent, used sparingly (never as a repeated pattern/texture).
+- **Frog silhouette** — every frog shape (`FrogMark`, `LandingPadMark`, the hero illustration) is a pure solid fill: one body form plus four splayed leg lobes, no stroke linework and no facial detail anywhere. The leap posture alone reads as "frog" — this is the most direct way the system avoids the cartoon-eyes/mascot look called out in the avoid-list above.
 
 ## Motion language
 

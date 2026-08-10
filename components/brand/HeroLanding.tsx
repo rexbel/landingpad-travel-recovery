@@ -42,17 +42,13 @@ export function HeroLanding({ className }: { className?: string }) {
           fill="var(--teal)"
           opacity="0.55"
         />
-        <path
-          d="M222 108c8.5 0 15.4 5.5 17.8 13.2.9 2.9.65 6.1-.9 8.7-3.2 5.6-9.7 9.2-16.9 9.2s-13.7-3.6-16.9-9.2c-1.55-2.6-1.8-5.8-.9-8.7 2.4-7.7 9.3-13.2 17.8-13.2Z"
-          fill="var(--teal)"
-        />
-        <path
-          d="M206 116.5c-4.3-2-7.2-5.9-8-10.6M201.5 125c-4.7.3-9-1.7-11.6-5.4M238 116.5c4.3-2 7.2-5.9 8-10.6M242.5 125c4.7.3 9-1.7 11.6-5.4"
-          stroke="var(--teal)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-        />
+        <g fill="var(--teal)">
+          <path d="M222 108c8.5 0 15.4 5.5 17.8 13.2.9 2.9.65 6.1-.9 8.7-3.2 5.6-9.7 9.2-16.9 9.2s-13.7-3.6-16.9-9.2c-1.55-2.6-1.8-5.8-.9-8.7 2.4-7.7 9.3-13.2 17.8-13.2Z" />
+          <ellipse cx="211" cy="111" rx="7.2" ry="3.1" transform="rotate(-35 211 111)" />
+          <ellipse cx="233" cy="111" rx="7.2" ry="3.1" transform="rotate(35 233 111)" />
+          <ellipse cx="205.5" cy="126" rx="8.6" ry="3.5" transform="rotate(38 205.5 126)" />
+          <ellipse cx="238.5" cy="126" rx="8.6" ry="3.5" transform="rotate(-38 238.5 126)" />
+        </g>
       </g>
     </svg>
   );

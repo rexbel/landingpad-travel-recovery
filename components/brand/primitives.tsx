@@ -19,10 +19,10 @@ function svgA11yProps(props: BrandPrimitiveProps) {
 }
 
 /**
- * Abstracted leaping-amphibian silhouette — a single smooth body form with
- * tucked rear legs and reaching front legs. Deliberately has no eyes or face:
- * the leap posture alone reads as "frog" without tipping into mascot/clip-art
- * territory.
+ * Pure silhouette of a leaping amphibian — one solid fill, no stroke
+ * linework, no eyes or face. Body plus four splayed legs (short reaching
+ * front pair, longer trailing back pair) is what reads as "frog"; the
+ * leap posture carries the meaning, not surface detail.
  */
 export function FrogMark(props: BrandPrimitiveProps) {
   const { size = 24, className, color = "currentColor" } = props;
@@ -36,18 +36,13 @@ export function FrogMark(props: BrandPrimitiveProps) {
       xmlns="http://www.w3.org/2000/svg"
       {...svgA11yProps(props)}
     >
-      <path
-        d="M16 7.5c3.9 0 7.1 2.55 8.2 6.1.42 1.36.3 2.86-.42 4.08C22.3 20.1 19.4 21.7 16 21.7s-6.3-1.6-7.78-4.02c-.72-1.22-.84-2.72-.42-4.08 1.1-3.55 4.3-6.1 8.2-6.1Z"
-        fill={color}
-      />
-      <path
-        d="M8.4 11.6c-1.9-.85-3.15-2.55-3.5-4.6M6.3 15.4c-2.05.15-3.95-.75-5.1-2.45M23.6 11.6c1.9-.85 3.15-2.55 3.5-4.6M25.7 15.4c2.05.15 3.95-.75 5.1-2.45"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
-      <ellipse cx="12.4" cy="14.6" rx="1.15" ry="1.35" fill="var(--paper, #f6f4ed)" />
-      <ellipse cx="19.6" cy="14.6" rx="1.15" ry="1.35" fill="var(--paper, #f6f4ed)" />
+      <g fill={color}>
+        <ellipse cx="16" cy="15" rx="7.4" ry="6.6" />
+        <ellipse cx="10" cy="9" rx="4.6" ry="2.1" transform="rotate(-38 10 9)" />
+        <ellipse cx="22" cy="9" rx="4.6" ry="2.1" transform="rotate(38 22 9)" />
+        <ellipse cx="8.5" cy="21.5" rx="5.6" ry="2.3" transform="rotate(42 8.5 21.5)" />
+        <ellipse cx="23.5" cy="21.5" rx="5.6" ry="2.3" transform="rotate(-42 23.5 21.5)" />
+      </g>
     </svg>
   );
 }
