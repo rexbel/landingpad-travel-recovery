@@ -209,8 +209,39 @@ describe("getExactFlightHistory", () => {
     expect(params.get("dest_code")).toBe("LAX");
     expect(params.get("date")).toBe("2026-08-09");
     expect(params.get("year")).toBe("2026");
-    expect(params.get("month")).toBe("8");
+    // `month` is deliberately never sent — confirmed live that AeroXplorer's
+    // API returns zero records whenever it's present, regardless of what
+    // else accompanies it. `date` already narrows to the exact day.
+    expect(params.has("month")).toBe(false);
     expect(params.get("results")).toBe("100");
+    delete process.env.AEROXPLORER_API_KEY;
+    delete process.env.AEROXPLORER_API_SECRET;
+  });
+
+  it("accepts OTP numeric fields as JSON strings, matching the live API's documented response shape", async () => {
+    // AeroXplorer's own OpenAPI spec (responseExample for /v1/travel/otp)
+    // serializes every numeric field as a string, e.g. "cancelled": "0.0",
+    // "diverted": "0.0", "arrdelayminutes": "13.0" — not JSON numbers, even
+    // though the field type is documented as "number". This is the same
+    // string-vs-number mismatch already fixed for airport lat/lng; without
+    // coercion, every real OTP record would fail schema validation.
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const fetchImpl = vi.fn<typeof fetch>(async (url) => {
+      if (url.toString() === TOKEN_URL) return tokenResponse();
+      return otpResponse([
+        { quarter: "3", dayofmonth: "12", cancelled: "0.0", diverted: "0.0", arrdelayminutes: "13.0", cancellationcode: null },
+      ]);
+    });
+
+    const result = await getExactFlightHistory(
+      { airlineCode: "AA", flightNumber: "100", originIata: "JFK", destinationIata: "LAX", scheduledDate: "2026-08-09" },
+      { fetchImpl },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.results[0]).toMatchObject({ cancelled: 0, diverted: 0, arrdelayminutes: 13 });
     delete process.env.AEROXPLORER_API_KEY;
     delete process.env.AEROXPLORER_API_SECRET;
   });

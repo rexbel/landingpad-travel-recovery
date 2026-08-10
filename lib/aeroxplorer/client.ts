@@ -161,14 +161,19 @@ export async function getExactFlightHistory(
   query: ExactFlightHistoryQuery,
   options: RequestOptions = {},
 ): Promise<AeroXplorerRequestResult<AeroXplorerOtpResponse>> {
-  const [year, month] = query.scheduledDate.split("-");
+  // Confirmed against the live API: AeroXplorer's `month` filter always
+  // returns zero records, regardless of what other parameters accompany it —
+  // a bug on their side. `date` already narrows to the exact day (strictly
+  // more specific than year+month), so `month` is omitted entirely; `year`
+  // alone was confirmed to filter correctly and is kept as a harmless,
+  // redundant narrowing.
+  const [year] = query.scheduledDate.split("-");
   const params: Record<string, string> = {
     airline_code: query.airlineCode,
     flight_num: query.flightNumber,
     origin_code: query.originIata,
     date: query.scheduledDate,
     year,
-    month: String(Number(month)),
     results: "100",
   };
   if (query.destinationIata) params.dest_code = query.destinationIata;
@@ -204,12 +209,14 @@ export async function getRouteHistory(
   query: RouteHistoryQuery,
   options: RequestOptions = {},
 ): Promise<AeroXplorerRequestResult<AeroXplorerOtpResponse>> {
-  const [year, month] = query.scheduledDate.split("-");
+  // See getExactFlightHistory above: `month` is omitted because AeroXplorer's
+  // live API always returns zero records when it's present, confirmed
+  // against the real endpoint. `date` is already exact-day precision.
+  const [year] = query.scheduledDate.split("-");
   const params: Record<string, string> = {
     origin_code: query.originIata,
     date: query.scheduledDate,
     year,
-    month: String(Number(month)),
     results: "100",
   };
   if (query.destinationIata) params.dest_code = query.destinationIata;

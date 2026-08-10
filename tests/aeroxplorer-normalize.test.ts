@@ -59,6 +59,11 @@ describe("normalizeHistoricalFlight", () => {
     expect(result?.cancellationRate).toBeCloseTo(0.5);
   });
 
+  it("treats a null arrdelayminutes as no delay data, not zero delay", () => {
+    const result = normalizeHistoricalFlight({ results: [{ cancelled: false, arrdelayminutes: null }] }, query);
+    expect(result?.delayRate).toBeUndefined();
+  });
+
   it("omits a rate entirely when no record reports that status, rather than guessing", () => {
     const result = normalizeHistoricalFlight({ results: [{ arrdelayminutes: 30 }] }, query);
     expect(result?.cancellationRate).toBeUndefined();
