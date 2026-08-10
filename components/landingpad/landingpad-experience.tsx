@@ -135,7 +135,7 @@ function planIcon(label: RecoveryPlan["label"]): ProductIconName {
   return PLAN_ICONS[label];
 }
 
-function Icon({ name }: { name: "mic" | "arrow" | "check" | "copy" | "plane" | "spark" | "shield" }) {
+function Icon({ name }: { name: "mic" | "arrow" | "check" | "copy" | "plane" | "spark" | "shield" | "caution" }) {
   const paths = {
     mic: <><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></>,
     arrow: <><path d="M5 12h14M13 6l6 6-6 6"/></>,
@@ -144,6 +144,7 @@ function Icon({ name }: { name: "mic" | "arrow" | "check" | "copy" | "plane" | "
     plane: <><path d="M22 2 9.5 14.5M22 2l-8 20-4.5-7.5L2 10l20-8Z"/></>,
     spark: <><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></>,
     shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></>,
+    caution: <><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></>,
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
@@ -554,6 +555,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <span className="lp-source-badge user"><ProductIcon name="user-confirmed" size={12} /> Confirmed by you</span>
             </div>
             {notice && <div className="lp-notice">{notice}</div>}
+            <div className="lp-form-subheading"><Icon name="shield" /> Trip constraints</div>
             <div className="lp-form-grid">
               <label className="wide">Target area<input value={request.targetArea} onChange={(e) => update("targetArea", e.target.value)} /></label>
               <label>Check-in<input type="date" value={request.checkin} onChange={(e) => update("checkin", e.target.value)} /></label>
@@ -561,6 +563,9 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <label>Adults<input type="number" min="1" value={request.adults} onChange={(e) => update("adults", Number(e.target.value))} /></label>
               <label>Rooms<input type="number" min="1" value={request.rooms} onChange={(e) => update("rooms", Number(e.target.value))} /></label>
               <label className="currency">Total budget<div><span>{request.currency}</span><input type="number" min="1" value={request.hardBudgetTotal ?? ""} onChange={(e) => update("hardBudgetTotal", Number(e.target.value) || undefined)} /></div></label>
+            </div>
+            <div className="lp-form-subheading lp-form-subheading-plain">Preferences <small>(optional)</small></div>
+            <div className="lp-form-grid">
               <label className="wide">Must-haves<input value={request.mustHaves.join(", ")} placeholder="Late check-in, step-free access" onChange={(e) => update("mustHaves", e.target.value.split(",").map((v) => v.trim()).filter(Boolean))} /></label>
             </div>
             {request.assistanceScope !== "hotel" && (
@@ -578,7 +583,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
                 )}
               </div>
             )}
-            <div className="lp-uncertainties">
+            <div className="lp-uncertainties is-caution">
               <strong>Still needs verification</strong>
               <div>{request.uncertainties.map((item) => <span key={item}>{item}</span>)}</div>
             </div>
@@ -645,7 +650,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               </div>
             )}
             {aviationContext?.mode === "unavailable" && (
-              <p className="lp-aviation-skip">Historical aviation context is unavailable right now — hotel results are unaffected.</p>
+              <p className="lp-status-chip"><Icon name="caution" /> Historical aviation context is unavailable right now — hotel results are unaffected.</p>
             )}
             {request.assistanceScope === "flight" && flightRecovery && (
               <FlightRecoverySection flightRecovery={flightRecovery} onSelect={setFlightApproval} />
@@ -667,11 +672,24 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
                 <article className={`lp-plan-card ${index === 0 ? "featured" : ""}`} key={`${plan.label}-${plan.stay.id}`}>
                   {index === 0 && <span className="lp-recommended">Recommended</span>}
                   <div className="lp-card-top"><span className="lp-plan-index">0{index + 1}</span><span className={`lp-source-badge ${plan.stay.sourceMode === "demo" ? "demo" : "live"}`}>{sourceLabel(plan.stay.sourceMode)}</span></div>
-                  <p className={`lp-plan-type ${plan.label === "fastest" ? "is-urgent" : ""}`}><ProductIcon name={planIcon(plan.label)} size={13} /> {planTitle(plan.label, mode)}</p>
+                  <p className={`lp-plan-type ${plan.label === "fastest" ? "is-urgent" : plan.label === "best-value" ? "is-value" : ""}`}><ProductIcon name={planIcon(plan.label)} size={13} /> {planTitle(plan.label, mode)}</p>
                   <h2>{plan.stay.name}</h2>
                   <div className="lp-price"><span>{new Intl.NumberFormat("en-US", { style: "currency", currency: plan.stay.currency, maximumFractionDigits: 0 }).format(plan.stay.totalPrice)}</span><small>full stay</small></div>
-                  <ul className="lp-evidence">{plan.rationale.map((item) => <li key={item}><Icon name="check" />{item}</li>)}</ul>
-                  <div className="lp-tradeoff"><strong>Tradeoff</strong><p>{plan.tradeoffs[0] ?? "No material tradeoff provided."}</p></div>
+                  <ul className="lp-evidence">
+                    {plan.rationale.map((item) => {
+                      const isUnverified = item.startsWith("Unverified:");
+                      return (
+                        <li key={item} className={isUnverified ? "is-caution" : undefined}>
+                          <Icon name={isUnverified ? "caution" : "check"} />
+                          {item}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className={`lp-tradeoff ${plan.tradeoffs[0]?.startsWith("Required facts remain unverified") ? "is-caution" : ""}`}>
+                    <strong>Tradeoff</strong>
+                    <p>{plan.tradeoffs[0] ?? "No material tradeoff provided."}</p>
+                  </div>
                   {plan.localContext.length > 0 ? <a className="lp-context-link" href={plan.localContext[0].url} target="_blank" rel="noreferrer">Local context · Tavily source ↗</a> : <span className="lp-context-empty">Local context unavailable</span>}
                   <button className="lp-primary" onClick={() => setApproval(plan)}>Review & approve <Icon name="arrow" /></button>
                 </article>
@@ -695,13 +713,13 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <div><span>Status</span><strong>Not booked</strong><small>Supplier verification and checkout remain with you.</small></div>
             </div>
             {handoffResult && handoffResult.confirmedFacts.length > 0 && (
-              <div className="lp-uncertainties">
+              <div className="lp-uncertainties is-good">
                 <strong>Confirmed facts</strong>
                 <div>{handoffResult.confirmedFacts.map((item) => <span key={item}>{item}</span>)}</div>
               </div>
             )}
             {handoffResult && handoffResult.openQuestions.length > 0 && (
-              <div className="lp-uncertainties">
+              <div className="lp-uncertainties is-caution">
                 <strong>Open questions</strong>
                 <div>{handoffResult.openQuestions.map((item) => <span key={item}>{item}</span>)}</div>
               </div>
@@ -773,7 +791,7 @@ function FlightRecoverySection({
   onSelect: (option: FlightRecoveryOption) => void;
 }) {
   if (flightRecovery.mode === "unavailable") {
-    return <p className="lp-aviation-skip">Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>;
+    return <p className="lp-status-chip"><Icon name="caution" /> Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>;
   }
   return (
     <div className="lp-flight-section">
