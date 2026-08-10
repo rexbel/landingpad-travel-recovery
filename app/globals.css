@@ -142,13 +142,26 @@ h1, h2, p { margin-top: 0; }
 .lp-form-grid .currency div span { height: 48px; padding: 0 12px; display: grid; place-items: center; border: 1px solid #d8ded8; border-right: 0; border-radius: 11px 0 0 11px; background: #eef1ec; }
 .lp-form-grid .currency input { border-radius: 0 11px 11px 0; }
 .lp-flight-confirm { margin-top: 22px; }
-.lp-form-subheading { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; color: var(--teal); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
-.lp-form-subheading svg { width: 15px; }
+.lp-form-subheading { display: flex; align-items: baseline; gap: 8px; margin: 26px 0 14px; color: var(--teal); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.lp-form-subheading:first-of-type { margin-top: 0; }
+.lp-form-subheading svg { width: 15px; align-self: center; }
+.lp-form-subheading small { color: var(--muted); font-weight: 700; text-transform: none; letter-spacing: normal; }
+.lp-form-subheading-plain { color: var(--muted); }
 .lp-form-hint { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .lp-uncertainties { margin: 22px 0; padding: 18px; border-radius: 14px; background: #f4f3ea; }
 .lp-uncertainties > strong { display: block; margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .lp-uncertainties div { display: flex; flex-wrap: wrap; gap: 8px; }
 .lp-uncertainties span { padding: 7px 10px; border-radius: 8px; color: #6d5b33; background: #fff5d8; font-size: 12px; }
+/* Positive/confirmed state — same shape as .lp-uncertainties, reuses the
+   already-shipped teal-on-mint pairing (.lp-source-badge.user) instead of
+   the caution amber, so "Confirmed facts" doesn't read as a warning. */
+.lp-uncertainties.is-good { background: #eef4f0; }
+.lp-uncertainties.is-good span { color: #285f50; background: #e2f1e9; }
+
+/* Small inline status chip for system-status sentences that were previously
+   plain paragraph text (e.g. "Historical aviation context is unavailable"). */
+.lp-status-chip { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 0; padding: 5px 10px; border-radius: 999px; color: #6d5b33; background: #fff5d8; font-size: 11px; font-weight: 700; }
+.lp-status-chip svg { width: 12px; height: 12px; flex-shrink: 0; }
 .lp-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .lp-search-panel { width: min(650px,100%); margin: 0 auto; text-align: center; }
 .lp-search-panel h1 { font-size: clamp(36px,5vw,56px); margin: 13px 0 34px; }
@@ -169,7 +182,7 @@ h1, h2, p { margin-top: 0; }
 .lp-search-row small { color: var(--muted); font-size: 10px; }
 .lp-search-row em { color: var(--muted); font-size: 10px; font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
 .lp-compare { width: 100%; }
-.lp-plan-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; align-items: stretch; }
+.lp-plan-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; align-items: stretch; margin-top: 26px; }
 .lp-plan-card { position: relative; min-width: 0; padding: 25px; border: 1px solid var(--line); border-radius: 21px; background: var(--white); display: flex; flex-direction: column; box-shadow: 0 12px 34px rgba(34,53,47,.05); }
 .lp-plan-card.featured { border-color: var(--teal); box-shadow: inset 0 4px 0 var(--lime), 0 18px 42px rgba(34,53,47,.1); }
 .lp-recommended { position: absolute; top: 0; left: 50%; transform: translate(-50%,-50%); padding: 6px 11px; border-radius: 999px; background: var(--lime); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
@@ -178,6 +191,7 @@ h1, h2, p { margin-top: 0; }
 .lp-plan-type { margin: 28px 0 8px; display: inline-flex; align-items: center; gap: 6px; color: var(--teal); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
 .lp-plan-type svg { width: 13px; height: 13px; flex-shrink: 0; }
 .lp-plan-type.is-urgent svg { color: var(--coral-dark); }
+.lp-plan-type.is-value svg { color: var(--pond-ring); }
 .lp-plan-card h2 { margin: 0; min-height: 52px; font-size: 22px; line-height: 1.16; letter-spacing: -.035em; }
 .lp-price { margin: 22px 0; display: flex; align-items: baseline; gap: 8px; }
 .lp-price span { font-size: 38px; font-weight: 800; letter-spacing: -.055em; }
@@ -185,9 +199,16 @@ h1, h2, p { margin-top: 0; }
 .lp-evidence { margin: 0 0 20px; padding: 0; list-style: none; display: grid; gap: 9px; }
 .lp-evidence li { display: flex; gap: 8px; color: #43514d; font-size: 12px; line-height: 1.45; }
 .lp-evidence svg { flex: 0 0 14px; width: 14px; color: var(--teal); }
+.lp-evidence li.is-caution svg { color: var(--coral-dark); }
 .lp-tradeoff { margin-top: auto; padding: 13px; border-radius: 11px; background: #f4f3ea; }
 .lp-tradeoff strong { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
 .lp-tradeoff p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+/* Same caution language as .lp-evidence li.is-caution / .lp-status-chip —
+   used when the tradeoff restates an already-flagged unverified fact, so the
+   two mentions read as one consistent signal instead of two neutral boxes. */
+.lp-tradeoff.is-caution { background: #fff5d8; }
+.lp-tradeoff.is-caution strong { color: #6d5b33; }
+.lp-tradeoff.is-caution p { color: #6d5b33; }
 .lp-context-link, .lp-context-empty { margin: 13px 0; font-size: 10px; color: var(--teal); }
 .lp-context-empty { color: var(--muted); }
 .lp-plan-card .lp-primary { width: 100%; }
