@@ -31,7 +31,7 @@ The browser receives normalized application data, not provider credentials or ra
 
 ## Demo mode vs. Active mode
 
-A client-side `appMode: "demo" | "active"` toggle (header UI, defaults to `"demo"`) is sent on every request. Each route checks it as an early, explicit short-circuit — before touching any adapter:
+A client-side `appMode: "demo" | "active"` toggle (header UI, defaults to `"active"`) is sent on every request. Each route checks it as an early, explicit short-circuit — before touching any adapter:
 
 - `POST /api/recovery/extract` — `appMode: "demo"` forces `extractTripRequest`'s `forceDemo` option, always using the deterministic extractor even if `OPENAI_API_KEY` is configured.
 - `GET /api/stays/search` — forces `searchStays`'s `forceDemo` option, returning Stay22's own demo fixtures without any network attempt (not a failure fallback — no `warning` attached).
