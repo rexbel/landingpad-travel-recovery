@@ -49,6 +49,40 @@ describe("getAirportByIata", () => {
     delete process.env.AEROXPLORER_API_SECRET;
   });
 
+  it("accepts lat/lng as numeric strings, matching the live API's actual response shape", async () => {
+    // Confirmed against the real AeroXplorer API: lat/lng come back as
+    // strings (e.g. "40.634638"), not JSON numbers, even though the OpenAPI
+    // spec implies numbers. A plain z.number() rejected every real airport
+    // response outright — this is the exact shape that broke in production.
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const fetchImpl = vi.fn<typeof fetch>(async (url) => {
+      if (url.toString() === TOKEN_URL) return tokenResponse();
+      return Response.json({
+        results: [
+          {
+            id: "2",
+            iata: "JFK",
+            icao: "KJFK",
+            name: "John F. Kennedy International Airport",
+            location: "Queens, New York, United States",
+            description: "",
+            lat: "40.634638",
+            lng: "-73.781603",
+          },
+        ],
+      });
+    });
+
+    const result = await getAirportByIata("JFK", { fetchImpl });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.results[0]).toMatchObject({ iata: "JFK", lat: 40.634638, lng: -73.781603 });
+    delete process.env.AEROXPLORER_API_KEY;
+    delete process.env.AEROXPLORER_API_SECRET;
+  });
+
   it("fails safely on a malformed airport response", async () => {
     process.env.AEROXPLORER_API_KEY = "k";
     process.env.AEROXPLORER_API_SECRET = "s";
@@ -175,8 +209,39 @@ describe("getExactFlightHistory", () => {
     expect(params.get("dest_code")).toBe("LAX");
     expect(params.get("date")).toBe("2026-08-09");
     expect(params.get("year")).toBe("2026");
-    expect(params.get("month")).toBe("8");
+    // `month` is deliberately never sent — confirmed live that AeroXplorer's
+    // API returns zero records whenever it's present, regardless of what
+    // else accompanies it. `date` already narrows to the exact day.
+    expect(params.has("month")).toBe(false);
     expect(params.get("results")).toBe("100");
+    delete process.env.AEROXPLORER_API_KEY;
+    delete process.env.AEROXPLORER_API_SECRET;
+  });
+
+  it("accepts OTP numeric fields as JSON strings, matching the live API's documented response shape", async () => {
+    // AeroXplorer's own OpenAPI spec (responseExample for /v1/travel/otp)
+    // serializes every numeric field as a string, e.g. "cancelled": "0.0",
+    // "diverted": "0.0", "arrdelayminutes": "13.0" — not JSON numbers, even
+    // though the field type is documented as "number". This is the same
+    // string-vs-number mismatch already fixed for airport lat/lng; without
+    // coercion, every real OTP record would fail schema validation.
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const fetchImpl = vi.fn<typeof fetch>(async (url) => {
+      if (url.toString() === TOKEN_URL) return tokenResponse();
+      return otpResponse([
+        { quarter: "3", dayofmonth: "12", cancelled: "0.0", diverted: "0.0", arrdelayminutes: "13.0", cancellationcode: null },
+      ]);
+    });
+
+    const result = await getExactFlightHistory(
+      { airlineCode: "AA", flightNumber: "100", originIata: "JFK", destinationIata: "LAX", scheduledDate: "2026-08-09" },
+      { fetchImpl },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.results[0]).toMatchObject({ cancelled: 0, diverted: 0, arrdelayminutes: 13 });
     delete process.env.AEROXPLORER_API_KEY;
     delete process.env.AEROXPLORER_API_SECRET;
   });
