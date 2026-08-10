@@ -85,6 +85,10 @@ LandingPad has no live flight-search, availability, or booking provider — Aero
 
 Outbound flight links go through the same explicit approval-gate UI pattern hotel booking links already use — "nothing is booked here either." Airline rebooking (actually completing a booking) remains a real non-goal; only search assistance is in scope.
 
+## Visual identity
+
+`components/brand/` and `components/icons/` implement the frog-on-lily-pad brand system (mark, hero illustration, and a 13-name product icon family) described in `docs/brand-guidelines.md`. It extends the existing color/shape system in `app/globals.css` rather than replacing it — no existing token was renamed or removed.
+
 ## Sponsor roles
 
 - Stay22 is the transactional accommodation core.

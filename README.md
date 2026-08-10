@@ -4,6 +4,8 @@ LandingPad is a voice-first travel disruption advisor built for the Checkout Tra
 
 The primary demo is a cancelled flight at JFK. ElevenLabs powers voice intake, with text as the guaranteed fallback. Stay22 supplies live accommodation data and booking links, Tavily supplies current local context, OpenAI supports structured extraction, and AeroXplorer supplies **historical** aviation evidence (airport identity and, for an exact flight query, historical performance) — never live flight status. Every material claim is labeled by source (live, web-grounded, historical, inferred, or demo), and no booking link opens without explicit user approval. EventStay — the same application core reconfigured for event-based stay planning — is a no-rewrite fallback available via `NEXT_PUBLIC_PRODUCT_MODE=event`.
 
+The visual identity — a frog leaping to a lily pad, standing in for "disrupted → recovering → landed" — is documented in [`docs/brand-guidelines.md`](docs/brand-guidelines.md); its components live in `components/brand/` and `components/icons/`.
+
 ## Local setup
 
 ```bash
