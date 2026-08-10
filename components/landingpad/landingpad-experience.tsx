@@ -20,6 +20,9 @@ import {
 import type { RecoveryPlan } from "@/schemas/recovery-plan";
 import type { StayOption } from "@/schemas/stay-option";
 import type { TripRequest } from "@/schemas/trip-request";
+import { LandingPadMark } from "@/components/brand/LandingPadMark";
+import { HeroLanding } from "@/components/brand/HeroLanding";
+import { ProductIcon, type ProductIconName } from "@/components/icons";
 
 type Step = "start" | "brief" | "search" | "compare" | "handoff";
 type SearchState = "waiting" | "working" | "done" | "fallback";
@@ -120,6 +123,16 @@ function planTitle(label: RecoveryPlan["label"], mode: ProductMode) {
     return { fastest: "Closest exit", "best-value": "Best value", "best-rest": "Make a weekend of it" }[label];
   }
   return { fastest: "Fastest recovery", "best-value": "Best value", "best-rest": "Best rest" }[label];
+}
+
+const PLAN_ICONS: Record<RecoveryPlan["label"], ProductIconName> = {
+  fastest: "time-pressure",
+  "best-value": "budget",
+  "best-rest": "room",
+};
+
+function planIcon(label: RecoveryPlan["label"]): ProductIconName {
+  return PLAN_ICONS[label];
 }
 
 function Icon({ name }: { name: "mic" | "arrow" | "check" | "copy" | "plane" | "spark" | "shield" }) {
@@ -456,7 +469,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     <main className="lp-shell">
       <header className="lp-header">
         <button className="lp-brand" onClick={reset} aria-label="Reset and return home">
-          <span className="lp-brand-mark"><Icon name={isEvent ? "spark" : "plane"} /></span>
+          <span className="lp-brand-mark"><LandingPadMark size={18} /></span>
           <span>{isEvent ? "EventStay" : "LandingPad"}</span>
         </button>
         <div className="lp-mode-pill"><span /> {isEvent ? "Event planning" : "Recovery mode"}</div>
@@ -484,6 +497,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
       <section className="lp-stage" aria-live="polite">
         {step === "start" && (
           <div className="lp-start">
+            <HeroLanding className="lp-hero" />
             <div className="lp-eyebrow"><Icon name="spark" /> {isEvent ? "Stay smarter around the moment" : "Your calm after plans change"}</div>
             <h1>{isEvent ? "Stay near what matters." : "Tell us what changed."}</h1>
             <p className="lp-lede">{isEvent ? "Turn an event into three clear, bookable stay strategies." : "Speak naturally. We’ll turn the disruption into a clear, editable recovery brief."}</p>
@@ -537,7 +551,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
           <div className="lp-panel lp-brief">
             <div className="lp-section-heading">
               <div><span className="lp-kicker">Step 2 · editable</span><h1>Confirm what we heard</h1><p>Correct anything before we search. Hard limits stay hard.</p></div>
-              <span className="lp-source-badge user">Confirmed by you</span>
+              <span className="lp-source-badge user"><ProductIcon name="user-confirmed" size={12} /> Confirmed by you</span>
             </div>
             {notice && <div className="lp-notice">{notice}</div>}
             <div className="lp-form-grid">
@@ -578,11 +592,11 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
             <span className="lp-kicker">Building your three options</span>
             <h1>{isEvent ? "Matching stays to the moment" : "Finding the clearest way forward"}</h1>
             <div className="lp-search-list">
-              <SearchRow label="Dated accommodation options" vendor="Stay22" state={searchState.stays} />
-              <SearchRow label="Nearby essentials and context" vendor="Tavily" state={searchState.context} />
-              <SearchRow label="Eligibility and plan ranking" vendor="LandingPad" state={searchState.ranking} />
-              <SearchRow label="Historical operating context" vendor="AeroXplorer" state={searchState.aviation} />
-              <SearchRow label="Alternate flight options" vendor="Tavily" state={searchState.flights} />
+              <SearchRow icon="hotel" label="Dated accommodation options" vendor="Stay22" state={searchState.stays} />
+              <SearchRow icon="evidence-source" label="Nearby essentials and context" vendor="Tavily" state={searchState.context} />
+              <SearchRow icon="user-confirmed" label="Eligibility and plan ranking" vendor="LandingPad" state={searchState.ranking} />
+              <SearchRow icon="historical-aviation-data" label="Historical operating context" vendor="AeroXplorer" state={searchState.aviation} />
+              <SearchRow icon="flight-disruption" label="Alternate flight options" vendor="Tavily" state={searchState.flights} />
             </div>
             <p>Each source can finish independently. Partial results stay useful.</p>
           </div>
@@ -598,7 +612,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <div className="lp-aviation-evidence">
                 <div className="lp-aviation-heading">
                   <span className="lp-kicker">Historical operating context</span>
-                  <span className="lp-source-badge aeroxplorer">AeroXplorer historical records</span>
+                  <span className="lp-source-badge aeroxplorer"><ProductIcon name="historical-aviation-data" size={12} /> AeroXplorer historical records</span>
                 </div>
                 {aviationContext.airport && (
                   <p className="lp-aviation-airport">
@@ -653,7 +667,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
                 <article className={`lp-plan-card ${index === 0 ? "featured" : ""}`} key={`${plan.label}-${plan.stay.id}`}>
                   {index === 0 && <span className="lp-recommended">Recommended</span>}
                   <div className="lp-card-top"><span className="lp-plan-index">0{index + 1}</span><span className={`lp-source-badge ${plan.stay.sourceMode === "demo" ? "demo" : "live"}`}>{sourceLabel(plan.stay.sourceMode)}</span></div>
-                  <p className="lp-plan-type">{planTitle(plan.label, mode)}</p>
+                  <p className={`lp-plan-type ${plan.label === "fastest" ? "is-urgent" : ""}`}><ProductIcon name={planIcon(plan.label)} size={13} /> {planTitle(plan.label, mode)}</p>
                   <h2>{plan.stay.name}</h2>
                   <div className="lp-price"><span>{new Intl.NumberFormat("en-US", { style: "currency", currency: plan.stay.currency, maximumFractionDigits: 0 }).format(plan.stay.totalPrice)}</span><small>full stay</small></div>
                   <ul className="lp-evidence">{plan.rationale.map((item) => <li key={item}><Icon name="check" />{item}</li>)}</ul>
@@ -672,7 +686,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 
         {step === "handoff" && selected && (
           <div className="lp-panel lp-handoff">
-            <div className="lp-success-mark"><Icon name="check" /></div>
+            <div className="lp-success-mark"><ProductIcon name="recovery-completed" size={25} /></div>
             <span className="lp-kicker">Advisor-ready</span>
             <h1>Your next move is clear.</h1>
             <p>Share this summary with a travel advisor or keep it for the supplier checkout.</p>
@@ -729,9 +743,26 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   );
 }
 
-function SearchRow({ label, vendor, state }: { label: string; vendor: string; state: SearchState }) {
+function SearchRow({
+  icon,
+  label,
+  vendor,
+  state,
+}: {
+  icon: ProductIconName;
+  label: string;
+  vendor: string;
+  state: SearchState;
+}) {
   const text = state === "working" ? "Searching" : state === "done" ? "Ready" : state === "fallback" ? "Fallback ready" : "Waiting";
-  return <div className={`lp-search-row is-${state}`}><span className="lp-search-status">{state === "done" || state === "fallback" ? <Icon name="check" /> : <i />}</span><div><strong>{label}</strong><small>{vendor}</small></div><em>{text}</em></div>;
+  return (
+    <div className={`lp-search-row is-${state}`}>
+      <span className="lp-search-status">{state === "done" || state === "fallback" ? <Icon name="check" /> : <i />}</span>
+      <span className="lp-search-vendor-icon"><ProductIcon name={icon} size={15} /></span>
+      <div><strong>{label}</strong><small>{vendor}</small></div>
+      <em>{text}</em>
+    </div>
+  );
 }
 
 function FlightRecoverySection({
@@ -755,6 +786,7 @@ function FlightRecoverySection({
       </div>
       {flightRecovery.historicalContext && (
         <p className="lp-flight-route">
+          <ProductIcon name="historical-aviation-data" size={13} />
           {flightRecovery.historicalContext.originIata}
           {flightRecovery.historicalContext.destinationIata ? ` → ${flightRecovery.historicalContext.destinationIata}` : ""}
           {flightRecovery.historicalContext.onTimeRate !== undefined && (
