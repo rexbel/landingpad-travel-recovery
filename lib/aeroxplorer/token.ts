@@ -82,8 +82,19 @@ async function requestToken(options: {
   }
 }
 
-export function invalidateAeroXplorerToken(): void {
-  cached = null;
+/**
+ * Clears the cached token so the next call fetches a fresh one. Pass the
+ * specific token that just failed (e.g. produced a 401) so a concurrent
+ * request that already refreshed the cache to a newer token isn't clobbered —
+ * generating a new AeroXplorer token can invalidate the previous one for the
+ * same API key, so nulling out a token nobody actually knows is bad would
+ * break whichever other in-flight request is relying on it. Omit the
+ * argument to force an unconditional clear (e.g. in tests).
+ */
+export function invalidateAeroXplorerToken(staleToken?: string): void {
+  if (staleToken === undefined || cached?.token === staleToken) {
+    cached = null;
+  }
 }
 
 export async function getAeroXplorerToken(

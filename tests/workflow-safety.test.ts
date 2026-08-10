@@ -118,6 +118,19 @@ describe("AeroXplorer stays outside hotel eligibility logic", () => {
   });
 });
 
+describe("every credential-reading provider adapter guards against client-side execution", () => {
+  it("stay22 and tavily clients carry the same SERVER_ONLY_ADAPTER guard as every sibling adapter", async () => {
+    // stay22/client.ts and tavily/client.ts were previously missing this
+    // guard despite reading a secret and fetching an external API just like
+    // every other adapter here — this test exists specifically so a future
+    // regression (or a new adapter forgetting the guard) is caught.
+    for (const file of ["lib/stay22/client.ts", "lib/tavily/client.ts"]) {
+      const source = await read(file);
+      expect(source).toContain('throw new Error("SERVER_ONLY_ADAPTER")');
+    }
+  });
+});
+
 describe("flight recovery stays outside hotel eligibility logic and never claims live status", () => {
   it("the client component never imports the server-only flight-recovery adapter directly", async () => {
     const source = await read("components/landingpad/landingpad-experience.tsx");

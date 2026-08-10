@@ -18,6 +18,16 @@ describe("GET /api/voice/signed-url", () => {
 
     expect(response.status).toBe(503);
     expect(getSignedVoiceUrl).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ ok: false, error: { code: "VOICE_DEMO_MODE" } });
+  });
+
+  it("reports a distinct code when credentials are genuinely missing outside demo mode", async () => {
+    const { GET } = await import("@/app/api/voice/signed-url/route");
+
+    const response = await GET(new Request("http://localhost/api/voice/signed-url?appMode=active"));
+
+    expect(response.status).toBe(503);
+    expect(getSignedVoiceUrl).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({ ok: false, error: { code: "VOICE_NOT_CONFIGURED" } });
   });
 
@@ -54,6 +64,19 @@ describe("GET /api/voice/signed-url", () => {
     const abortError = new Error("The operation was aborted");
     abortError.name = "AbortError";
     getSignedVoiceUrl.mockRejectedValue(abortError);
+    const { GET } = await import("@/app/api/voice/signed-url/route");
+
+    const response = await GET(new Request("http://localhost/api/voice/signed-url?appMode=active"));
+
+    await expect(response.json()).resolves.toMatchObject({ ok: false, error: { code: "VOICE_TIMEOUT" } });
+  });
+
+  it("categorizes the real AbortSignal.timeout() rejection name (TimeoutError), not just AbortError", async () => {
+    vi.stubEnv("ELEVENLABS_API_KEY", "key-present");
+    vi.stubEnv("ELEVENLABS_AGENT_ID", "agent-present");
+    const timeoutError = new Error("The operation timed out");
+    timeoutError.name = "TimeoutError";
+    getSignedVoiceUrl.mockRejectedValue(timeoutError);
     const { GET } = await import("@/app/api/voice/signed-url/route");
 
     const response = await GET(new Request("http://localhost/api/voice/signed-url?appMode=active"));

@@ -98,6 +98,32 @@ describe("AeroXplorer token manager", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it("does not clobber a token a concurrent caller already refreshed to", async () => {
+    // Simulates the race: request A's 401 on a stale token completes its
+    // full invalidate-refetch cycle before request B's own 401 (on that same
+    // stale token) is handled. B must not invalidate A's fresh token.
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(tokenResponse({ bearer: "stale-token" }))
+      .mockResolvedValueOnce(tokenResponse({ bearer: "fresh-token" }));
+
+    const staleResult = await getAeroXplorerToken({ apiKey: "k", apiSecret: "s", fetchImpl });
+    expect(staleResult).toMatchObject({ ok: true, token: "stale-token" });
+
+    // Request A: invalidates the stale token it actually used, then refreshes.
+    invalidateAeroXplorerToken("stale-token");
+    const freshResult = await getAeroXplorerToken({ apiKey: "k", apiSecret: "s", fetchImpl });
+    expect(freshResult).toMatchObject({ ok: true, token: "fresh-token" });
+
+    // Request B: also holds "stale-token" from before A's refresh, and only
+    // now gets around to invalidating it. The cache has already moved on to
+    // "fresh-token", so this must be a no-op, not a clear.
+    invalidateAeroXplorerToken("stale-token");
+    const afterBResult = await getAeroXplorerToken({ apiKey: "k", apiSecret: "s", fetchImpl });
+    expect(afterBResult).toMatchObject({ ok: true, token: "fresh-token" });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("fails safely and sanitized on a non-2xx token response", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () =>
       Response.json({ error: "invalid credentials", detail: "sensitive upstream diagnostic" }, { status: 401 }),

@@ -30,7 +30,7 @@ describe("getFlightRecoveryContext", () => {
       if (target.includes("api.tavily.com")) {
         return Response.json({ results: [{ content: "Search flights JFK to ORD", url: "https://example.com/1" }] });
       }
-      if (target.includes("/v1/travel/otp")) return Response.json({ results: [{ cancelled: false }] });
+      if (target.includes("/v1/travel/otp")) return Response.json({ results: [{ cancelled: false, diverted: false }] });
       throw new Error(`Unexpected request to ${target}`);
     });
 

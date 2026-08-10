@@ -132,7 +132,12 @@ export function deterministicExtract(input: ExtractRequest): ExtractionResult {
           },
         }
       : { event: { venue: targetAreaFrom(text) } }),
-    ...(originIata ? { flight: { originIata, destinationIata, scheduledDate: checkout } } : {}),
+    // scheduledDate is deliberately omitted — this extractor has no way to
+    // parse an actual stated flight date from free text, and defaulting it
+    // to the checkout date would invent a fact the traveler never gave,
+    // silently driving a flight-recovery search for the wrong date. The
+    // traveler can fill it in directly via the step-2 flight-details field.
+    ...(originIata ? { flight: { originIata, destinationIata } } : {}),
     ...(assistanceScope ? { assistanceScope } : {}),
   };
 
