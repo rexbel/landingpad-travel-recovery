@@ -177,6 +177,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const [isRequestingMic, setIsRequestingMic] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [isBuildingBrief, setIsBuildingBrief] = useState(false);
   const [searchState, setSearchState] = useState<Record<string, SearchState>>({ stays: "waiting", context: "waiting", ranking: "waiting", aviation: "waiting", flights: "waiting" });
   const [approval, setApproval] = useState<RecoveryPlan | null>(null);
   const [copied, setCopied] = useState(false);
@@ -218,6 +219,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     setIsRequestingMic(false);
     setTranscript("");
     setNotice(null);
+    setIsBuildingBrief(false);
     setApproval(null);
     setCopied(false);
     setHandoffResult(null);
@@ -285,6 +287,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 
   async function createBrief(text: string = prompt) {
     setNotice(null);
+    setIsBuildingBrief(true);
     try {
       const response = await fetch("/api/recovery/extract", {
         method: "POST",
@@ -297,6 +300,8 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
       else setNotice("Using a prepared brief because structured extraction is unavailable.");
     } catch {
       setNotice("Using a prepared brief because structured extraction is unavailable.");
+    } finally {
+      setIsBuildingBrief(false);
     }
     setStep("brief");
   }
@@ -537,9 +542,9 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
             )}
             {voiceUIState === "connected" && (
               <div className="lp-actions">
-                <button className="lp-secondary" onClick={cancelVoice}>End without using</button>
-                <button className="lp-primary" onClick={finishVoiceAndContinue} disabled={!transcript.trim()}>
-                  Use this &amp; continue <Icon name="arrow" />
+                <button className="lp-secondary" onClick={cancelVoice} disabled={isBuildingBrief}>End without using</button>
+                <button className="lp-primary" onClick={finishVoiceAndContinue} disabled={!transcript.trim() || isBuildingBrief}>
+                  {isBuildingBrief ? "Building your brief…" : <>Use this &amp; continue <Icon name="arrow" /></>}
                 </button>
               </div>
             )}
@@ -548,8 +553,8 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
             <label className="lp-prompt-card">
               <span>{isEvent ? "Event and stay details" : "What happened?"}</span>
               <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={5} />
-              <button className="lp-primary" onClick={() => createBrief()} disabled={!prompt.trim()}>
-                Build my brief <Icon name="arrow" />
+              <button className="lp-primary" onClick={() => createBrief()} disabled={!prompt.trim() || isBuildingBrief}>
+                {isBuildingBrief ? "Building your brief…" : <>Build my brief <Icon name="arrow" /></>}
               </button>
             </label>
             {notice && <div className={`lp-notice ${voiceUIState === "failed" || voiceUIState === "mic-denied" ? "is-error" : ""}`}>{notice}</div>}
@@ -682,6 +687,10 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <div><span>Selected stay</span><strong>{selected.stay.name}</strong><small>{selected.stay.currency} {selected.stay.totalPrice} total · {sourceLabel(selected.stay.sourceMode)}</small></div>
               <div><span>Status</span><strong>Not booked</strong><small>Supplier verification and checkout remain with you.</small></div>
             </div>
+            <button className="lp-text-button" onClick={() => setStep("compare")}>Change stay <Icon name="arrow" /></button>
+            {flightRecovery && (
+              <FlightRecoverySection flightRecovery={flightRecovery} aviationContext={null} onSelect={setFlightApproval} />
+            )}
             {handoffResult && handoffResult.confirmedFacts.length > 0 && (
               <div className="lp-uncertainties is-good">
                 <strong>Confirmed facts</strong>
