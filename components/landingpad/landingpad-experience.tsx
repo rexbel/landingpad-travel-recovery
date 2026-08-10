@@ -611,58 +611,15 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 
         {step === "compare" && (
           <div className="lp-compare">
+            {flightRecovery ? (
+              <FlightRecoverySection flightRecovery={flightRecovery} aviationContext={aviationContext} onSelect={setFlightApproval} />
+            ) : (
+              <AviationEvidence aviationContext={aviationContext} />
+            )}
             <div className="lp-section-heading">
               <div><span className="lp-kicker">Three eligible strategies</span><h1>Choose your landing</h1><p>Prices are full-stay totals. Verify supplier terms before booking.</p></div>
               <button className="lp-secondary compact" onClick={() => setStep("brief")}>Edit constraints</button>
             </div>
-            {aviationContext && aviationContext.mode !== "unavailable" && (
-              <div className="lp-aviation-evidence">
-                <div className="lp-aviation-heading">
-                  <span className="lp-kicker">Historical operating context</span>
-                  <span className="lp-source-badge aeroxplorer"><ProductIcon name="historical-aviation-data" size={12} /> AeroXplorer historical records</span>
-                </div>
-                {aviationContext.airport && (
-                  <p className="lp-aviation-airport">
-                    {aviationContext.airport.name} ({aviationContext.airport.iata})
-                  </p>
-                )}
-                {aviationContext.historicalFlight ? (
-                  <div className="lp-aviation-stats">
-                    <span>
-                      {aviationContext.historicalFlight.observations !== undefined && (
-                        <>
-                          {aviationContext.historicalFlight.observations} observed flight
-                          {aviationContext.historicalFlight.observations === 1 ? "" : "s"}
-                        </>
-                      )}
-                      {aviationContext.historicalFlight.observationWindow
-                        ? `${aviationContext.historicalFlight.observations !== undefined ? " · " : ""}${aviationContext.historicalFlight.observationWindow}`
-                        : ""}
-                    </span>
-                    {aviationContext.historicalFlight.cancellationRate !== undefined && (
-                      <span>{Math.round(aviationContext.historicalFlight.cancellationRate * 100)}% historically cancelled</span>
-                    )}
-                    {aviationContext.historicalFlight.delayRate !== undefined && (
-                      <span>{Math.round(aviationContext.historicalFlight.delayRate * 100)}% historically delayed 15+ min</span>
-                    )}
-                    {aviationContext.historicalFlight.diversionRate !== undefined && (
-                      <span>{Math.round(aviationContext.historicalFlight.diversionRate * 100)}% historically diverted</span>
-                    )}
-                  </div>
-                ) : (
-                  <p className="lp-aviation-skip">
-                    {aviationContext.warnings[0] ?? "Flight-specific history wasn't queried — only airport identity is shown."}
-                  </p>
-                )}
-                <p className="lp-aviation-disclaimer">Historical performance does not confirm today’s flight status.</p>
-              </div>
-            )}
-            {aviationContext?.mode === "unavailable" && (
-              <p className="lp-status-chip"><Icon name="caution" /> Historical aviation context is unavailable right now — hotel results are unaffected.</p>
-            )}
-            {request.assistanceScope === "flight" && flightRecovery && (
-              <FlightRecoverySection flightRecovery={flightRecovery} onSelect={setFlightApproval} />
-            )}
             {plans.length === 0 ? (
               <div className="lp-empty-state">
                 <span className="lp-empty-icon">0</span>
@@ -704,9 +661,6 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               ))}
             </div>}
             <p className="lp-data-note">Demo-labeled options are validated fixtures, not live availability. Live results preserve Stay22 booking links exactly.</p>
-            {request.assistanceScope !== "flight" && flightRecovery && (
-              <FlightRecoverySection flightRecovery={flightRecovery} onSelect={setFlightApproval} />
-            )}
           </div>
         )}
 
@@ -791,15 +745,71 @@ function SearchRow({
   );
 }
 
+function AviationEvidence({ aviationContext }: { aviationContext: AviationContext | null }) {
+  if (!aviationContext) return null;
+  if (aviationContext.mode === "unavailable") {
+    return <p className="lp-status-chip"><Icon name="caution" /> Historical aviation context is unavailable right now — hotel results are unaffected.</p>;
+  }
+  return (
+    <div className="lp-aviation-evidence">
+      <div className="lp-aviation-heading">
+        <span className="lp-kicker">Historical operating context</span>
+        <span className="lp-source-badge aeroxplorer"><ProductIcon name="historical-aviation-data" size={12} /> AeroXplorer historical records</span>
+      </div>
+      {aviationContext.airport && (
+        <p className="lp-aviation-airport">
+          {aviationContext.airport.name} ({aviationContext.airport.iata})
+        </p>
+      )}
+      {aviationContext.historicalFlight ? (
+        <div className="lp-aviation-stats">
+          <span>
+            {aviationContext.historicalFlight.observations !== undefined && (
+              <>
+                {aviationContext.historicalFlight.observations} observed flight
+                {aviationContext.historicalFlight.observations === 1 ? "" : "s"}
+              </>
+            )}
+            {aviationContext.historicalFlight.observationWindow
+              ? `${aviationContext.historicalFlight.observations !== undefined ? " · " : ""}${aviationContext.historicalFlight.observationWindow}`
+              : ""}
+          </span>
+          {aviationContext.historicalFlight.cancellationRate !== undefined && (
+            <span>{Math.round(aviationContext.historicalFlight.cancellationRate * 100)}% historically cancelled</span>
+          )}
+          {aviationContext.historicalFlight.delayRate !== undefined && (
+            <span>{Math.round(aviationContext.historicalFlight.delayRate * 100)}% historically delayed 15+ min</span>
+          )}
+          {aviationContext.historicalFlight.diversionRate !== undefined && (
+            <span>{Math.round(aviationContext.historicalFlight.diversionRate * 100)}% historically diverted</span>
+          )}
+        </div>
+      ) : (
+        <p className="lp-aviation-skip">
+          {aviationContext.warnings[0] ?? "Flight-specific history wasn't queried — only airport identity is shown."}
+        </p>
+      )}
+      <p className="lp-aviation-disclaimer">Historical performance does not confirm today’s flight status.</p>
+    </div>
+  );
+}
+
 function FlightRecoverySection({
   flightRecovery,
+  aviationContext,
   onSelect,
 }: {
   flightRecovery: FlightRecoveryContext;
+  aviationContext: AviationContext | null;
   onSelect: (option: FlightRecoveryOption) => void;
 }) {
   if (flightRecovery.mode === "unavailable") {
-    return <p className="lp-status-chip"><Icon name="caution" /> Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>;
+    return (
+      <>
+        <AviationEvidence aviationContext={aviationContext} />
+        <p className="lp-status-chip"><Icon name="caution" /> Flight recovery assistance is unavailable right now — hotel results are unaffected.</p>
+      </>
+    );
   }
   return (
     <div className="lp-flight-section">
@@ -810,6 +820,7 @@ function FlightRecoverySection({
         </div>
         <span className="lp-source-badge tavily">Tavily web search</span>
       </div>
+      <AviationEvidence aviationContext={aviationContext} />
       {flightRecovery.historicalContext && (
         <p className="lp-flight-route">
           <ProductIcon name="historical-aviation-data" size={13} />
