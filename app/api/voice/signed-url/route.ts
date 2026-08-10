@@ -6,11 +6,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
   const appMode = new URL(request.url).searchParams.get("appMode");
-  if (appMode === "demo" || !process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_AGENT_ID) {
+  const credentialsConfigured = Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_AGENT_ID);
+  if (appMode === "demo" || !credentialsConfigured) {
+    // Same client-facing message either way, but a distinct code so
+    // server-side logs can tell "demo mode was requested" apart from
+    // "credentials are actually missing" — those look identical to a
+    // traveler but mean very different things to whoever's on call.
+    const code = appMode === "demo" ? "VOICE_DEMO_MODE" : "VOICE_NOT_CONFIGURED";
     const result: ApiResult<never> = {
       ok: false,
       error: {
-        code: "VOICE_NOT_CONFIGURED",
+        code,
         message: "Voice is unavailable. Continue with text entry.",
         retryable: false,
       },
@@ -26,7 +32,11 @@ export async function GET(request: Request): Promise<Response> {
     // Categorize the failure so the client can show something more useful
     // than a single generic message — never the raw error, key, or body.
     const message = error instanceof Error ? error.message : "";
-    const timedOut = error instanceof Error && error.name === "AbortError";
+    // AbortSignal.timeout() rejects with a DOMException named "TimeoutError",
+    // not "AbortError" — that name is reserved for a manual controller.abort()
+    // call. Match both so a real timeout doesn't fall through to the generic
+    // VOICE_RESPONSE_INVALID branch below.
+    const timedOut = error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
     const httpMatch = message.match(/^ELEVENLABS_HTTP_(\d+)$/);
 
     if (httpMatch) {

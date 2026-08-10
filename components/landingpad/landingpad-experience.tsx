@@ -361,6 +361,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
         checkin: request.checkin,
         checkout: request.checkout,
         adults: String(request.adults),
+        children: String(request.children),
         rooms: String(request.rooms),
         currency: request.currency,
         appMode,
@@ -561,6 +562,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <label>Check-in<input type="date" value={request.checkin} onChange={(e) => update("checkin", e.target.value)} /></label>
               <label>Check-out<input type="date" value={request.checkout} onChange={(e) => update("checkout", e.target.value)} /></label>
               <label>Adults<input type="number" min="1" value={request.adults} onChange={(e) => update("adults", Number(e.target.value))} /></label>
+              <label>Children<input type="number" min="0" value={request.children} onChange={(e) => update("children", Number(e.target.value))} /></label>
               <label>Rooms<input type="number" min="1" value={request.rooms} onChange={(e) => update("rooms", Number(e.target.value))} /></label>
               <label className="currency">Total budget<div><span>{request.currency}</span><input type="number" min="1" value={request.hardBudgetTotal ?? ""} onChange={(e) => update("hardBudgetTotal", Number(e.target.value) || undefined)} /></div></label>
             </div>
@@ -627,9 +629,15 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
                 {aviationContext.historicalFlight ? (
                   <div className="lp-aviation-stats">
                     <span>
-                      {aviationContext.historicalFlight.observations} observed flight
-                      {aviationContext.historicalFlight.observations === 1 ? "" : "s"}
-                      {aviationContext.historicalFlight.observationWindow ? ` · ${aviationContext.historicalFlight.observationWindow}` : ""}
+                      {aviationContext.historicalFlight.observations !== undefined && (
+                        <>
+                          {aviationContext.historicalFlight.observations} observed flight
+                          {aviationContext.historicalFlight.observations === 1 ? "" : "s"}
+                        </>
+                      )}
+                      {aviationContext.historicalFlight.observationWindow
+                        ? `${aviationContext.historicalFlight.observations !== undefined ? " · " : ""}${aviationContext.historicalFlight.observationWindow}`
+                        : ""}
                     </span>
                     {aviationContext.historicalFlight.cancellationRate !== undefined && (
                       <span>{Math.round(aviationContext.historicalFlight.cancellationRate * 100)}% historically cancelled</span>

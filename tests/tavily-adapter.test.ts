@@ -13,6 +13,23 @@ afterEach(() => {
 });
 
 describe("Tavily adapter", () => {
+  it("degrades gracefully instead of throwing on an out-of-range query", async () => {
+    process.env.TAVILY_API_KEY = "tvly-private";
+    const fetchImpl = vi.fn();
+
+    const result = await searchLocalContext("hi", { fetchImpl });
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "TAVILY_INVALID_QUERY",
+        message: "The search query must be between 3 and 500 characters.",
+        retryable: false,
+      },
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("fails gracefully without a key and never calls fetch", async () => {
     delete process.env.TAVILY_API_KEY;
     const fetchImpl = vi.fn();

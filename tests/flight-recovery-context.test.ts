@@ -66,6 +66,47 @@ describe("getRouteHistoricalContext", () => {
     expect(result?.destinationIata).toBe("ORD");
   });
 
+  it("excludes records with unknown cancellation/diversion status instead of counting them as on time", async () => {
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const fetchImpl = vi.fn<typeof fetch>(async (url) => {
+      if (url.toString() === TOKEN_URL) return Response.json({ bearer: "t", expiration: 9_999_999_999 });
+      return Response.json({
+        results: [
+          { cancelled: false, diverted: false }, // known on time
+          {}, // unknown status entirely — must not be assumed on time
+          { cancelled: false }, // diverted unknown — must not be assumed on time
+        ],
+      });
+    });
+
+    const result = await getRouteHistoricalContext(
+      { originIata: "JFK", destinationIata: "ORD", scheduledDate: "2026-08-10" },
+      { fetchImpl },
+    );
+
+    // observations reports the full sample size, but onTimeRate's denominator
+    // only counts the one record with fully known status.
+    expect(result?.observations).toBe(3);
+    expect(result?.onTimeRate).toBe(1);
+  });
+
+  it("returns undefined when every record has unknown status, rather than fabricating a rate", async () => {
+    process.env.AEROXPLORER_API_KEY = "k";
+    process.env.AEROXPLORER_API_SECRET = "s";
+    const fetchImpl = vi.fn<typeof fetch>(async (url) => {
+      if (url.toString() === TOKEN_URL) return Response.json({ bearer: "t", expiration: 9_999_999_999 });
+      return Response.json({ results: [{}, { cancelled: false }] });
+    });
+
+    const result = await getRouteHistoricalContext(
+      { originIata: "JFK", scheduledDate: "2026-08-10" },
+      { fetchImpl },
+    );
+
+    expect(result).toBeUndefined();
+  });
+
   it("returns undefined when there are zero historical records, rather than a fabricated rate", async () => {
     process.env.AEROXPLORER_API_KEY = "k";
     process.env.AEROXPLORER_API_SECRET = "s";

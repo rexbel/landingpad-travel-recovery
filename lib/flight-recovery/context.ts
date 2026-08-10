@@ -25,12 +25,22 @@ export async function getRouteHistoricalContext(
   const records = result.data.results;
   if (records.length === 0) return undefined;
 
-  const onTimeFlags = records.map((record) => {
-    const cancelled = toBooleanFlag(record.cancelled) ?? false;
-    const diverted = toBooleanFlag(record.diverted) ?? false;
-    const delayed = typeof record.arrdelayminutes === "number" && record.arrdelayminutes >= DELAY_THRESHOLD_MINUTES;
-    return !cancelled && !diverted && !delayed;
-  });
+  // A record can only be confidently called on-time or not if we actually
+  // know its cancellation/diversion status — an unknown status is excluded
+  // rather than defaulted to "not cancelled/not diverted", matching how
+  // lib/aeroxplorer/normalize.ts excludes unknown-status records from its
+  // own rate denominators instead of silently assuming the best case.
+  const onTimeFlags = records
+    .map((record) => {
+      const cancelled = toBooleanFlag(record.cancelled);
+      const diverted = toBooleanFlag(record.diverted);
+      if (cancelled === undefined || diverted === undefined) return undefined;
+      const delayed = typeof record.arrdelayminutes === "number" && record.arrdelayminutes >= DELAY_THRESHOLD_MINUTES;
+      return !cancelled && !diverted && !delayed;
+    })
+    .filter((flag): flag is boolean => flag !== undefined);
+
+  if (onTimeFlags.length === 0) return undefined;
 
   return {
     originIata: query.originIata,

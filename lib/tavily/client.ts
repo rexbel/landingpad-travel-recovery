@@ -14,6 +14,7 @@ const tavilyResponseSchema = z.object({
 
 export type TavilyErrorCode =
   | "TAVILY_NOT_CONFIGURED"
+  | "TAVILY_INVALID_QUERY"
   | "TAVILY_TIMEOUT"
   | "TAVILY_RATE_LIMITED"
   | "TAVILY_UPSTREAM_ERROR"
@@ -27,7 +28,22 @@ export async function searchLocalContext(
   query: string,
   options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<TavilySearchResult> {
-  const cleanQuery = z.string().trim().min(3).max(500).parse(query);
+  if (typeof window !== "undefined") throw new Error("SERVER_ONLY_ADAPTER");
+  // This adapter's contract is to never throw — safeParse and degrade
+  // gracefully like every other failure path here, instead of letting an
+  // out-of-range query surface as an uncaught ZodError.
+  const queryCheck = z.string().trim().min(3).max(500).safeParse(query);
+  if (!queryCheck.success) {
+    return {
+      ok: false,
+      error: {
+        code: "TAVILY_INVALID_QUERY",
+        message: "The search query must be between 3 and 500 characters.",
+        retryable: false,
+      },
+    };
+  }
+  const cleanQuery = queryCheck.data;
   const apiKey = process.env.TAVILY_API_KEY?.trim();
   if (!apiKey) {
     return {

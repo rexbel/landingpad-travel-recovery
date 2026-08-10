@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ApiResult } from "@/schemas/api-result";
 import { flightSchema } from "@/schemas/trip-request";
-import type { FlightRecoveryContext } from "@/schemas/flight-recovery";
+import { flightRecoveryContextSchema, type FlightRecoveryContext } from "@/schemas/flight-recovery";
 import { getFlightRecoveryContext } from "@/lib/flight-recovery";
 import { invalidRequest, serverFailure } from "@/lib/ai/http";
 
@@ -32,7 +32,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const data = await getFlightRecoveryContext({ flight: parsed.data.flight });
+    const data = flightRecoveryContextSchema.parse(await getFlightRecoveryContext({ flight: parsed.data.flight }));
     const result: ApiResult<FlightRecoveryContext> = { ok: true, data };
     return Response.json(result, { headers: { "Cache-Control": "private, no-store" } });
   } catch {

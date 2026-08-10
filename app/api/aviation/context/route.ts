@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ApiResult } from "@/schemas/api-result";
 import { flightSchema } from "@/schemas/trip-request";
-import type { AviationContext } from "@/schemas/aviation-context";
+import { aviationContextSchema, type AviationContext } from "@/schemas/aviation-context";
 import { getAviationContext } from "@/lib/aeroxplorer";
 import { invalidRequest, serverFailure } from "@/lib/ai/http";
 
@@ -34,11 +34,13 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const data = await getAviationContext({
-      currentLocation: parsed.data.currentLocation,
-      targetArea: parsed.data.targetArea,
-      flight: parsed.data.flight,
-    });
+    const data = aviationContextSchema.parse(
+      await getAviationContext({
+        currentLocation: parsed.data.currentLocation,
+        targetArea: parsed.data.targetArea,
+        flight: parsed.data.flight,
+      }),
+    );
     const result: ApiResult<AviationContext> = { ok: true, data };
     return Response.json(result, { headers: { "Cache-Control": "private, no-store" } });
   } catch {

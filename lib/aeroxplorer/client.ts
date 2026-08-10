@@ -87,7 +87,11 @@ async function authenticatedGet(
   }
 
   if (outcome.response.status === 401) {
-    invalidateAeroXplorerToken();
+    // Only invalidate if the cache still holds the token that actually
+    // failed — a concurrent request may have already refreshed it, and
+    // clearing that fresh token would just trigger another unnecessary
+    // (and per AeroXplorer's documented behavior, disruptive) refresh.
+    invalidateAeroXplorerToken(tokenResult.token);
     const retryTokenResult = await getAeroXplorerToken({ baseUrl, fetchImpl, timeoutMs });
     if (!retryTokenResult.ok) return retryTokenResult;
     outcome = await attempt(retryTokenResult.token);

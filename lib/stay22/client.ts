@@ -173,6 +173,7 @@ export function searchStays(
   rawInput: Stay22SearchInput,
   options: { fetchImpl?: FetchLike; timeoutMs?: number; fallbackToDemo?: boolean; forceDemo?: boolean } = {},
 ): Promise<Stay22SearchResult> {
+  if (typeof window !== "undefined") throw new Error("SERVER_ONLY_ADAPTER");
   const input = searchInputSchema.parse(rawInput);
   if (options.forceDemo) return Promise.resolve(demoOnlyResult(input.currency));
 
