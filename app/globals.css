@@ -110,6 +110,10 @@ h1, h2, p { margin-top: 0; }
 .lp-form-grid .currency div { display: flex; }
 .lp-form-grid .currency div span { height: 48px; padding: 0 12px; display: grid; place-items: center; border: 1px solid #d8ded8; border-right: 0; border-radius: 11px 0 0 11px; background: #eef1ec; }
 .lp-form-grid .currency input { border-radius: 0 11px 11px 0; }
+.lp-flight-confirm { margin-top: 22px; }
+.lp-form-subheading { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; color: var(--teal); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.lp-form-subheading svg { width: 15px; }
+.lp-form-hint { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .lp-uncertainties { margin: 22px 0; padding: 18px; border-radius: 14px; background: #f4f3ea; }
 .lp-uncertainties > strong { display: block; margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .lp-uncertainties div { display: flex; flex-wrap: wrap; gap: 8px; }

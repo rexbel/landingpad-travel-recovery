@@ -147,9 +147,11 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const isEvent = mode === "event";
   // Demo mode deliberately forces every server route to its seeded/fallback
   // path — no live provider is ever contacted, regardless of configured
-  // credentials. Active mode is today's default: attempt real calls,
-  // degrade gracefully. Demo is the safer default for a live presentation.
-  const [appMode, setAppMode] = useState<"demo" | "active">("demo");
+  // credentials. Active mode is the default: attempt real calls wherever a
+  // provider is configured, degrade gracefully otherwise (per-route fallback
+  // behavior is unchanged either way — this only changes which path a
+  // traveler lands on before touching the toggle).
+  const [appMode, setAppMode] = useState<"demo" | "active">("active");
   const [step, setStep] = useState<Step>("start");
   const [prompt, setPrompt] = useState(isEvent ? eventPrompt : primaryPrompt);
   const [request, setRequest] = useState<TripRequest>(() => initialRequest(mode));
@@ -404,6 +406,13 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     setRequest((current) => ({ ...current, [key]: value }));
   }
 
+  function updateFlight<K extends keyof NonNullable<TripRequest["flight"]>>(
+    key: K,
+    value: NonNullable<TripRequest["flight"]>[K],
+  ) {
+    setRequest((current) => ({ ...current, flight: { ...current.flight, [key]: value } }));
+  }
+
   function toggleAppMode() {
     setAppMode((current) => (current === "demo" ? "active" : "demo"));
   }
@@ -540,6 +549,21 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
               <label className="currency">Total budget<div><span>{request.currency}</span><input type="number" min="1" value={request.hardBudgetTotal ?? ""} onChange={(e) => update("hardBudgetTotal", Number(e.target.value) || undefined)} /></div></label>
               <label className="wide">Must-haves<input value={request.mustHaves.join(", ")} placeholder="Late check-in, step-free access" onChange={(e) => update("mustHaves", e.target.value.split(",").map((v) => v.trim()).filter(Boolean))} /></label>
             </div>
+            {request.assistanceScope !== "hotel" && (
+              <div className="lp-flight-confirm">
+                <div className="lp-form-subheading"><Icon name="plane" /> Flight details</div>
+                <div className="lp-form-grid">
+                  <label>Origin airport (IATA)<input value={request.flight?.originIata ?? ""} maxLength={3} placeholder="JFK" onChange={(e) => updateFlight("originIata", e.target.value.toUpperCase() || undefined)} /></label>
+                  <label>Destination airport (IATA)<input value={request.flight?.destinationIata ?? ""} maxLength={3} placeholder="ORD" onChange={(e) => updateFlight("destinationIata", e.target.value.toUpperCase() || undefined)} /></label>
+                  <label>Flight date<input type="date" value={request.flight?.scheduledDate ?? ""} onChange={(e) => updateFlight("scheduledDate", e.target.value || undefined)} /></label>
+                  <label>Airline code<input value={request.flight?.airlineCode ?? ""} maxLength={4} placeholder="AA" onChange={(e) => updateFlight("airlineCode", e.target.value.toUpperCase() || undefined)} /></label>
+                  <label className="wide">Flight number<input value={request.flight?.flightNumber ?? ""} maxLength={6} placeholder="1234" onChange={(e) => updateFlight("flightNumber", e.target.value || undefined)} /></label>
+                </div>
+                {!(request.flight?.originIata && request.flight?.scheduledDate) && (
+                  <p className="lp-form-hint">Add an origin airport and date so we can search alternate flight options for you. Airline and flight number are optional but sharpen historical evidence.</p>
+                )}
+              </div>
+            )}
             <div className="lp-uncertainties">
               <strong>Still needs verification</strong>
               <div>{request.uncertainties.map((item) => <span key={item}>{item}</span>)}</div>

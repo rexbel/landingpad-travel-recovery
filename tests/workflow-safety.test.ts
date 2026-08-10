@@ -20,12 +20,19 @@ async function listFilesRecursive(dir: string): Promise<string[]> {
   return files.flat();
 }
 
-describe("provider-preflight workflow stays manual and credential-scoped", () => {
-  it("keeps workflow_dispatch as the only trigger", async () => {
+describe("provider-preflight workflow runs automatically but stays fork-safe and credential-scoped", () => {
+  it("triggers on push (to main only), pull_request, and workflow_dispatch", async () => {
     const source = await read(".github/workflows/provider-preflight.yml");
-    expect(source).toMatch(/^on:\s*\n\s*workflow_dispatch:/m);
-    expect(source).not.toMatch(/\bpush:\s*\n/);
-    expect(source).not.toMatch(/\bpull_request:\s*\n/);
+    expect(source).toMatch(/^on:\s*\n\s*push:\s*\n\s*branches:\s*\[main\]\s*\n\s*pull_request:\s*\n\s*workflow_dispatch:/m);
+  });
+
+  it("every job requires same-repo origin on pull_request, so a fork PR never gets the secrets", async () => {
+    const source = await read(".github/workflows/provider-preflight.yml");
+    const forkGuard = "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository";
+    const jobCount = (source.match(/^  [a-z-]+:\s*\n\s*runs-on:/gm) ?? []).length;
+    const guardedCount = source.split(forkGuard).length - 1;
+    expect(jobCount).toBeGreaterThan(0);
+    expect(guardedCount).toBe(jobCount);
   });
 
   it("scopes permissions to contents: read", async () => {

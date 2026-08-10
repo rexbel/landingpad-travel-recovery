@@ -1,6 +1,9 @@
 name: Provider credential preflight
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
     inputs:
       provider:
@@ -15,15 +18,23 @@ on:
 permissions:
   contents: read
 
+# push/pull_request runs have no `provider` input, so both jobs are eligible
+# on every such run — the manual workflow_dispatch selection only applies to
+# workflow_dispatch itself. Every job additionally requires same-repo origin
+# on pull_request: a PR opened from a fork must never get access to these
+# secrets, so pull_request_target is deliberately not used and this check
+# stays in every job's `if`, not just the workflow trigger list.
 concurrency:
-  group: ${{ github.event.inputs.provider == 'aeroxplorer' && 'aeroxplorer-preflight-token' || format('provider-preflight-{0}', github.run_id) }}
+  group: ${{ (github.event_name != 'workflow_dispatch' || github.event.inputs.provider == 'aeroxplorer') && 'aeroxplorer-preflight-token' || format('provider-preflight-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   verify-provider-credentials:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: github.event.inputs.provider == 'all'
+    if: |
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.provider == 'all')
     env:
       STAY22_API_KEY: ${{ secrets.STAY22_API_KEY }}
       ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
@@ -98,7 +109,9 @@ jobs:
   verify-aeroxplorer:
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    if: github.event.inputs.provider == 'aeroxplorer'
+    if: |
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.provider == 'aeroxplorer')
     permissions:
       contents: read
     env:

@@ -16,10 +16,10 @@ The app runs at `http://localhost:3000`.
 
 ## Demo mode vs. Active mode
 
-The app header has a **Demo mode / Active mode** toggle (defaults to Demo — the safer choice for a live presentation):
+The app header has a **Demo mode / Active mode** toggle (defaults to Active — so a configured provider is actually used without an extra click; switch to Demo for a guaranteed-offline walkthrough):
 
-- **Demo mode** forces every server route to its seeded/fallback path — Stay22 returns its own demo fixtures, and Tavily, AeroXplorer, flight recovery, and voice all report themselves unavailable. **No provider is contacted, regardless of what credentials are configured.** This is the same offline behavior described below, just guaranteed deliberately rather than by absence of credentials.
-- **Active mode** attempts real calls to every configured provider (Stay22, Tavily, OpenAI, ElevenLabs, AeroXplorer) — this is the app's original default behavior before the toggle existed. A provider that isn't configured, or that fails, still degrades gracefully to fallback data exactly as documented below; Active mode does not require every provider to be configured.
+- **Active mode** attempts real calls to every configured provider (Stay22, Tavily, OpenAI, ElevenLabs, AeroXplorer). A provider that isn't configured, or that fails, still degrades gracefully to fallback data exactly as documented below; Active mode does not require every provider to be configured.
+- **Demo mode** forces every server route to its seeded/fallback path — Stay22 returns its own demo fixtures, and Tavily, AeroXplorer, flight recovery, and voice all report themselves unavailable. **No provider is contacted, regardless of what credentials are configured.** Switch to this if you want a guaranteed-offline run, e.g. before a presentation where you don't want a flaky network call live on stage.
 
 Toggling is purely a client preference sent as `appMode: "demo" | "active"` on every request — no page reload needed.
 
