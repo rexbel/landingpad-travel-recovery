@@ -33,14 +33,6 @@ const eventSteps = ["Event", "Confirm", "Search", "Compare", "Share"];
 const eventPrompt =
   "I’m attending Checkout Travel Hack NYC on August 9. Find one room nearby for two adults, under $350 total, with an easy trip back after the event.";
 
-// Requires the ElevenLabs agent's dashboard settings to allow first-message
-// and prompt overrides — otherwise the agent falls back to its own configured
-// behavior, and the app still degrades gracefully either way.
-const VOICE_FIRST_MESSAGE =
-  "Hi, I'm LandingPad's recovery assistant. What happened, and do you need help with a hotel, an alternate flight, or both?";
-const VOICE_AGENT_PROMPT =
-  "You are LandingPad's travel disruption recovery assistant. First ask what happened. Then ask, as its own question, whether the traveler needs hotel accommodations, an alternate flight, or both — wait for their answer before moving on. Ask one short question at a time. Once you have the disruption summary and which assistance they need, briefly confirm what you heard and let them know LandingPad will build a recovery brief from it. Never promise a specific price, availability, or booking — LandingPad only surfaces options for the traveler to review and approve themselves.";
-
 function initialRequest(mode: ProductMode): TripRequest {
   if (mode === "recovery") return structuredClone(primaryTripRequest);
   const { disruption: _disruption, ...shared } = primaryTripRequest;
@@ -187,9 +179,15 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     onMessage: (payload) => {
       setTranscript((current) => appendUserTranscript(current, { role: payload.role, message: payload.message }));
     },
-    onError: () => setNotice(voiceStatusNotice("failed")),
+    onError: (message) => {
+      console.error("ElevenLabs conversation error:", message);
+      setNotice(voiceStatusNotice("failed"));
+    },
     onDisconnect: (details) => {
-      if (details.reason === "error") setNotice(voiceStatusNotice("failed"));
+      if (details.reason === "error") {
+        console.error("ElevenLabs conversation disconnected with error:", details);
+        setNotice(voiceStatusNotice("failed"));
+      }
     },
   });
 
@@ -245,15 +243,13 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
           : undefined;
       if (!response.ok || !signedUrl) throw new Error(apiErrorMessage(raw) ?? "Voice unavailable");
       setTranscript("");
-      conversation.startSession({
-        signedUrl,
-        overrides: {
-          agent: {
-            firstMessage: VOICE_FIRST_MESSAGE,
-            prompt: { prompt: VOICE_AGENT_PROMPT },
-          },
-        },
-      });
+      // No overrides: this agent's dashboard security settings don't permit
+      // client-supplied firstMessage/prompt overrides — sending them isn't a
+      // graceful no-op, ElevenLabs closes the connection outright (WS code
+      // 1008, "Override for field '...' is not allowed by config."), which
+      // surfaced to users as "Voice connection failed." Confirmed live: the
+      // session connects cleanly using the agent's own configured behavior.
+      conversation.startSession({ signedUrl });
     } catch (error) {
       const specific = error instanceof Error && error.message !== "Voice unavailable" ? error.message : undefined;
       setNotice(specific ?? "Voice is unavailable right now. Your request is preserved—continue with text.");
