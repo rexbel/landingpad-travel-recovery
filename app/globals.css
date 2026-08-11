@@ -75,25 +75,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .lp-stage { width: min(1180px, calc(100% - 40px)); margin: 0 auto; min-height: calc(100vh - 215px); padding: clamp(40px,7vw,82px) 0 80px; display: grid; align-items: start; }
 .lp-start { width: min(710px,100%); margin: 0 auto; text-align: center; }
 .lp-hero { width: min(280px,60%); height: auto; margin: 0 auto 8px; display: block; }
-@media (prefers-reduced-motion: no-preference) {
-  .lp-hero-leap { animation: lp-leap 3.2s ease-in-out infinite; transform-origin: 222px 130px; }
-  .lp-hero-pond { animation: lp-pond-ripple 3.2s ease-in-out infinite; transform-origin: 160px 176px; }
-  .lp-hero-route { animation: lp-resolve 3.2s ease-in-out infinite; }
-}
-@keyframes lp-leap {
-  0% { transform: translate(0,0) rotate(0deg); }
-  30% { transform: translate(-10px,-22px) rotate(-6deg); }
-  55% { transform: translate(-2px,-4px) rotate(2deg); }
-  70%, 100% { transform: translate(0,0) rotate(0deg); }
-}
-@keyframes lp-pond-ripple {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.025); opacity: 0.85; }
-}
-@keyframes lp-resolve {
-  0% { opacity: .3; transform: translate(-6px, 4px); }
-  60%, 100% { opacity: 1; transform: translate(0, 0); }
-}
 .lp-eyebrow, .lp-kicker { color: var(--accent); font-size: 11px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
 .lp-eyebrow { display: inline-flex; align-items: center; gap: 8px; }
 .lp-eyebrow svg { width: 16px; }
