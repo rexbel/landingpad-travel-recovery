@@ -4,7 +4,9 @@
 // atmospheric — the surrounding heading/copy carries the actual meaning, so
 // this is marked decorative (aria-hidden) rather than given alt text.
 // Motion is opt-in via .lp-hero-animate and respects prefers-reduced-motion
-// in app/globals.css.
+// in app/globals.css. The head reuses FrogSignal's twin eye-bump silhouette
+// (scaled up, same construction) with a matching pair of eyes so the hero
+// reads as the same character as the header/status icon, not a separate one.
 
 export function HeroLanding({ className }: { className?: string }) {
   return (
@@ -43,12 +45,14 @@ export function HeroLanding({ className }: { className?: string }) {
           opacity="0.55"
         />
         <g fill="var(--teal)">
-          <path d="M222 108c8.5 0 15.4 5.5 17.8 13.2.9 2.9.65 6.1-.9 8.7-3.2 5.6-9.7 9.2-16.9 9.2s-13.7-3.6-16.9-9.2c-1.55-2.6-1.8-5.8-.9-8.7 2.4-7.7 9.3-13.2 17.8-13.2Z" />
           <ellipse cx="211" cy="111" rx="7.2" ry="3.1" transform="rotate(-35 211 111)" />
           <ellipse cx="233" cy="111" rx="7.2" ry="3.1" transform="rotate(35 233 111)" />
           <ellipse cx="205.5" cy="126" rx="8.6" ry="3.5" transform="rotate(38 205.5 126)" />
           <ellipse cx="238.5" cy="126" rx="8.6" ry="3.5" transform="rotate(-38 238.5 126)" />
+          <path d="M222 108C218.6 105 214.4 104 211 105.6 206.4 107.8 204 112.2 204 117 204 123.6 207.4 129.4 213 133 216 135 219 135.8 222 135.8 225 135.8 228 135 231 133 236.6 129.4 240 123.6 240 117 240 112.2 237.6 107.8 233 105.6 229.6 104 225.4 105 222 108Z" />
         </g>
+        <circle cx="213" cy="112.6" r="4.6" fill="var(--paper)" />
+        <circle cx="231" cy="112.6" r="4.6" fill="var(--paper)" />
       </g>
     </svg>
   );
