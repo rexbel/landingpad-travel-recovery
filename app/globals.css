@@ -16,17 +16,21 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 1px rgba(0,0,0,.25);
   --shadow-md: 0 8px 24px rgba(0,0,0,.4);
 
-  /* Frog Green — the system's single primary/accent color, per brand
-     asset usage guidelines (Primary color: Frog Green #A6E673). --accent-ink
-     is the dark foreground used for content sitting on an --accent fill,
-     since the accent itself is light. --teal/--lime/--lime-dark are kept as
+  /* Marine blue — deliberately overrides the brand asset's own "Primary
+     color: Frog Green #A6E673" mandate. Decided by direct comparison
+     against a green-accent preview: blue is the more conventional read for
+     a travel/flight product, at the cost of severing continuity with the
+     pond-water brand. Everything else about the system (grayscale
+     structure, shadcn conventions, the FrogSignal icon construction) is
+     unchanged — only this one token's value moved. --accent-ink is the
+     dark foreground used for content sitting on an --accent fill, since
+     the accent itself is light. --teal/--lime/--lime-dark are kept as
      aliases so existing brand illustration files (HeroLanding.tsx) that
-     reference them by name need no changes — the whole system now runs on
-     one accent instead of the previous two-tone teal/lime pairing. */
-  --accent: #a6e673;
-  --accent-dark: #8bc95a;
-  --accent-ink: #0b140c;
-  --accent-wash: #1c2a1a;
+     reference them by name need no changes. */
+  --accent: #6fb0e0;
+  --accent-dark: #4a8fc2;
+  --accent-ink: #082036;
+  --accent-wash: #142a3b;
   --teal: var(--accent);
   --lime: var(--accent);
   --lime-dark: var(--accent-dark);

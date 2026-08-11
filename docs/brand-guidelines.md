@@ -30,7 +30,9 @@ Clip art, emoji, photorealistic textures, jungle/pond scenery as literal backgro
 
 ## Palette
 
-Rule 16 (default to grayscale, apply the 60-30-10 method, deviate only where it conflicts with brand-asset recommendations) governs the whole system. The one deviation is Frog Green `#A6E673`, which the brand asset usage guidelines mandate directly ("Primary color: Frog Green `#A6E673`," "use on dark or muted backgrounds for best contrast") — everything else stays neutral. In 60-30-10 terms: **60%** page/surface grayscale, **30%** ink/border grayscale, **10%** the single accent green (plus a second, smaller semantic exception for caution/error, in line with how even mostly-monochrome systems like shadcn keep one distinct "destructive" hue).
+Rule 16 (default to grayscale, apply the 60-30-10 method, deviate only where it conflicts with brand-asset recommendations) governs the whole system. In 60-30-10 terms: **60%** page/surface grayscale, **30%** ink/border grayscale, **10%** a single accent (plus a second, smaller semantic exception for caution/error, in line with how even mostly-monochrome systems like shadcn keep one distinct "destructive" hue).
+
+**The accent is marine blue (`#6FB0E0`), not the brand asset's mandated Frog Green (`#A6E673`).** This is a deliberate, explicit override, decided by direct side-by-side comparison against a green-accent version: blue reads as the more conventional choice for a travel/flight product, at the acknowledged cost of severing continuity with the pond-water brand the rest of this document describes. Every other part of the second-generation brand system — the grayscale structure, the shadcn conventions, the `FrogSignal` icon's construction (silhouette, dashed ring, expression states) — is unchanged; only this one token's value differs from the brand asset's own spec. The `FrogSignal` icon itself now renders in blue too, since it reads its ring/fill color from `--accent` rather than a hardcoded green.
 
 Token *names* are unchanged from the original palette (so `HeroLanding.tsx` and every consuming CSS rule needed no edits) — only their values changed, plus `--teal`/`--lime`/`--lime-dark` now alias the new accent tokens directly:
 
@@ -41,10 +43,10 @@ Token *names* are unchanged from the original palette (so `HeroLanding.tsx` and 
 | `--ink` | `#eef4ec` | Primary text (30%). |
 | `--muted` | `#94a89a` | Secondary text (30% family). |
 | `--line` / `--line-strong` | `#33453a` / `#46594c` | Hairline borders (30% family), stepped further from the surfaces than the first pass so panels visibly separate from their background. |
-| `--accent` | `#a6e673` | Frog Green — the system's one primary/accent color (10%). Primary buttons, active/confirmed/live states, the frog mark. |
-| `--accent-dark` | `#8bc95a` | Hover/pressed variant of `--accent`. |
-| `--accent-ink` | `#0b140c` | Dark foreground for content sitting on an `--accent` fill (the accent itself is light). |
-| `--accent-wash` | `#1c2a1a` | Low-opacity accent tint for badge/ring backgrounds. |
+| `--accent` | `#6fb0e0` | Marine blue — the system's one primary/accent color (10%), overriding the brand asset's Frog Green per the decision above. Primary buttons, active/confirmed/live states, the frog mark's ring and filled states. |
+| `--accent-dark` | `#4a8fc2` | Hover/pressed variant of `--accent`. |
+| `--accent-ink` | `#082036` | Dark foreground for content sitting on an `--accent` fill (the accent itself is light). |
+| `--accent-wash` | `#142a3b` | Low-opacity accent tint for badge/ring backgrounds. |
 | `--teal` / `--lime` / `--lime-dark` | alias `--accent` / `--accent` / `--accent-dark` | Kept as aliases so pre-existing files that reference them by name (`HeroLanding.tsx`) render correctly under the new single-accent system without modification. |
 | `--coral` / `--coral-dark` / `--caution-wash` | `#f0876f` / `#ffb49e` / `#2a1712` | The system's one semantic exception besides the accent — every caution/unverified/error surface uses this single pair (source badges for mere provider attribution stay neutral gray; only genuine warning states get color). |
 | `--pond` / `--pond-ring` | `#16211a` / `#4c6b57` | Dark-surface wash and ripple/route linework for the hero illustration. Background/decoration only — never text. |

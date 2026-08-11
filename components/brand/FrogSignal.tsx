@@ -1,12 +1,12 @@
 // Expressive status signal: a frog face on a dashed "landing pad" ring,
 // built from the brand asset usage guidelines (frog silhouette on circular
 // landing-pad outline; eyes for expression; mouth changes — frown/none/smile
-// — for sad/neutral/happy). This supersedes, for status-signal contexts
-// only, the earlier no-face rule documented in docs/brand-guidelines.md —
-// see that file's "Expressive states" section for the reasoning. All other
-// brand primitives (FrogMark, LandingPadMark, HeroLanding) stay pure
-// silhouette; this is the one deliberate exception, reserved for
-// loading/error/success moments, never a recurring illustrated character.
+// — for sad/neutral/happy). See docs/brand-guidelines.md's "Expressive
+// states" section. Colors read from --accent (see globals.css for the
+// current accent value/reasoning), not a hardcoded hue, so this component
+// doesn't need to change when the accent does. FrogMark/LandingPadMark/
+// HeroLanding stay pure silhouette by choice, not because faces are
+// disallowed elsewhere.
 
 export type FrogSignalState = "sad" | "neutral" | "happy";
 
