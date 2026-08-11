@@ -12,22 +12,56 @@ Three product moments map directly onto the metaphor:
 
 ## What this identity deliberately avoids
 
-Clip art, emoji, photorealistic textures, cartoon eyes or any other mascot-style face, jungle/pond scenery as literal background art, decorative AI-gradient blobs, and mascot overload (the frog appears as a mark or a single hero moment — never as a recurring cartoon character narrating the UI). The tone is mature editorial illustration: flat shapes, confident line work, restrained color, no anthropomorphizing.
+Clip art, emoji, photorealistic textures, jungle/pond scenery as literal background art, decorative AI-gradient blobs, and mascot overload (the frog appears as a mark or a single hero moment — never as a recurring cartoon character narrating the UI). The tone is mature editorial illustration: flat shapes, confident line work, restrained color, no anthropomorphizing.
+
+**The earlier "no facial detail" rule has been dropped.** The second-generation brand asset set is built entirely around an expressive frog face (eyes + mouth, sad/neutral/happy) — see "Expressive states" below — and that face is now a first-class part of the system, not a narrow exception confined to isolated status moments.
+
+## Expressive states — `FrogSignal`
+
+`components/brand/FrogSignal.tsx` is a frog face on a dashed circular "landing pad" ring, with three states:
+
+| State | Construction | Meaning |
+|---|---|---|
+| `sad` | Head fill matches `--paper` (reads as a page-colored cutout), accent-colored outline/eyes/frown | Disrupted — no landing point yet. |
+| `neutral` | Unfilled head, `currentColor` outline/eyes, no mouth | Recovering — in progress, arcing toward a landing. |
+| `happy` | Solid `--accent` fill, dark (`--accent-ink`) eyes and smile | Landed — settled, confirmed. |
+
+**Primary use — the header mark progresses with the journey.** `.lp-brand-mark` isn't fixed to one state: it reads `sad` on Tell Us, `neutral` on Confirm, and `happy` from Search onward — the same disrupted → recovering → landed arc the metaphor already describes (see "The metaphor" above), now visible continuously as the one frog icon that's on screen the whole time. Additional contextual uses layer on top of that: `neutral` while voice is connecting or a search is in progress, `sad` next to a voice failure/mic-denied notice, `happy` on the handoff success mark.
 
 ## Palette
 
-Extends the existing tokens in `app/globals.css` — nothing was replaced:
+Rule 16 (default to grayscale, apply the 60-30-10 method, deviate only where it conflicts with brand-asset recommendations) governs the whole system. In 60-30-10 terms: **60%** page/surface grayscale, **30%** ink/border grayscale, **10%** a single accent (plus a second, smaller semantic exception for caution/error, in line with how even mostly-monochrome systems like shadcn keep one distinct "destructive" hue).
+
+**The accent is a desaturated pond-teal (`#0F6F63`), not the brand asset's mandated Frog Green (`#A6E673`) or the marine blue tried in an earlier pass.** This is the current, deliberate choice: a light grayscale ground (60% `#FAFAFA`/`#FFFFFF`, 30% `#18181B` ink / `#71717A` muted / `#E4E4E7` borders) with teal kept as the single 10% accent for brand continuity with the pond-water identity, restricted to primary buttons, focus states, and the "live" badge only — not spread across every colored surface. Every other part of the brand system — the shadcn conventions, the `FrogSignal` icon's construction (silhouette, dashed ring, expression states) — is unchanged; only the palette's lightness and accent hue differ from the earlier dark/blue pass. The `FrogSignal` icon renders in teal, reading its ring/fill color from `--accent` rather than a hardcoded value.
+
+Token *names* are unchanged from the original palette (so `HeroLanding.tsx` and every consuming CSS rule needed no edits) — only their values changed, plus `--teal`/`--lime`/`--lime-dark` now alias the new accent tokens directly:
 
 | Token | Value | Use |
 |---|---|---|
-| `--teal` | `#0d5d52` | Primary brand color — frog silhouette, primary actions (unchanged, pre-existing). |
-| `--lime` / `--lime-dark` | `#d9f36a` / `#b9d848` | Accent — lily pad surface, recommended badges (unchanged, pre-existing). |
-| `--coral` | `#ec725f` | Soft fills only (unchanged, pre-existing — not new). |
-| `--coral-dark` | `#c94f3d` *(new)* | AA-safe icon-stroke variant of `--coral` (≈3:1 against `--paper`/`--white`). Reserved for urgency accents, e.g. the "fastest recovery" plan icon. |
-| `--pond` | `#e3f1ec` *(new)* | Background wash for water motifs (hero illustration base). Background/decoration only — never text. |
-| `--pond-ring` | `#9fc9bd` *(new)* | Ripple-ring and route-arc linework, and quiet decorative icon accents. Background/decoration only — never text. |
+| `--paper` | `#fafafa` | Page background (60%) — light neutral ground. |
+| `--white` | `#ffffff` | Raised surface (60% family) — cards, panels, inputs. Distinct from `--paper` so elevation still reads as a step up, not a flat match. |
+| `--ink` | `#18181b` | Primary text (30%). |
+| `--muted` | `#71717a` | Secondary text (30% family). |
+| `--line` / `--line-strong` | `#e4e4e7` / `#d4d4d8` | Hairline borders (30% family). |
+| `--accent` | `#0f6f63` | Desaturated pond-teal — the system's one primary/accent color (10%), kept for continuity with the original brand rather than the brand asset's Frog Green or the marine blue tried earlier. Primary buttons, focus states, the "live" badge, and the frog mark's ring and filled states. |
+| `--accent-dark` | `#0b5850` | Hover/pressed variant of `--accent`. |
+| `--accent-ink` | `#ffffff` | Foreground for content sitting on an `--accent` fill — white, since this teal is dark enough to carry it directly (unlike the lighter accents tried earlier, which needed dark text). |
+| `--accent-wash` | `#e7f1ef` | Low-opacity accent tint for badge/ring backgrounds. |
+| `--teal` / `--lime` / `--lime-dark` | alias `--accent` / `--accent` / `--accent-dark` | Kept as aliases so pre-existing files that reference them by name (`HeroLanding.tsx`) render correctly under the new single-accent system without modification. |
+| `--coral` / `--coral-dark` / `--caution-wash` | `#e8654a` / `#b23b2a` / `#fdeeea` | The system's one semantic exception besides the accent — every caution/unverified/error surface uses this single pair (source badges for mere provider attribution stay neutral gray; only genuine warning states get color). |
+| `--pond` / `--pond-ring` | `#e7f1ef` / `#9fc9bd` | Light-surface wash and ripple/route linework for the hero illustration. Background/decoration only — never text. |
 
-**Compliance boundary, stated plainly:** every *text* color pairing in the app (existing and new) targets WCAG AA (4.5:1). `--pond`/`--pond-ring` are decorative-only tokens — they never carry text and are never the sole source of meaning, so they sit outside the 1.4.11 non-text-contrast requirement, the same way the existing `--muted`/`#a0aaa6` decorative tones already do (see `.lp-plan-index`). Anywhere an icon is the *only* signal (none exist in this app — every icon here is paired with a text label), it should use `--coral-dark` or `--teal`, not `--pond-ring`.
+**Compliance boundary, stated plainly:** every *text* color pairing in the app targets WCAG AA (4.5:1) against the light backgrounds. `--pond`/`--pond-ring` remain decorative-only tokens — never text, never the sole source of meaning — so they sit outside the 1.4.11 non-text-contrast requirement, same as before.
+
+## Component conventions (shadcn/ui)
+
+Buttons, cards, badges, inputs, and focus states follow [shadcn/ui](https://ui.shadcn.com/)'s conventions rather than the previous large-radius, heavily-shadowed "editorial" treatment:
+
+- **Radius** — a consistent two-step scale, `--radius` (12px, cards/panels/primary buttons) and `--radius-sm` (8px, compact buttons/inputs/small badges), replacing the previous per-component values (16–28px).
+- **Shadow** — `--shadow-sm`/`--shadow-md`, subtle near-black elevation shadows, replacing the previous large soft colored shadows (e.g. `0 24px 70px rgba(34,53,47,.08)`).
+- **Buttons** — `.lp-primary` (solid accent, white foreground) and `.lp-secondary` (bordered, transparent) mirror shadcn's `default`/`outline` variants.
+- **Focus rings** — every interactive element gets a crisp 2px accent-colored `outline` with `outline-offset`, replacing the previous soft `rgba` glow.
+- **Badges** — `.lp-source-badge` defaults to a neutral gray-on-light pairing (per rule 16); only the two states that actually mean something — a confirmed/live signal — use the accent, matching shadcn's muted-background badge pattern.
 
 ## Shape language
 
@@ -36,7 +70,7 @@ Extends the existing tokens in `app/globals.css` — nothing was replaced:
 - **Arc paths** — a single dashed arc with a start/end waypoint dot (`RouteArc` primitive), standing in for "the route so far," used in the hero illustration and the advisor-handoff icon.
 - **Waypoint** — a ringed dot, for airports and named locations.
 - **Water-drop** — a single teardrop accent, used sparingly (never as a repeated pattern/texture).
-- **Frog silhouette** — every frog shape (`FrogMark`, `LandingPadMark`, the hero illustration) is a pure solid fill: one body form plus four splayed leg lobes, no stroke linework and no facial detail anywhere. The leap posture alone reads as "frog" — this is the most direct way the system avoids the cartoon-eyes/mascot look called out in the avoid-list above.
+- **Frog silhouette** — `FrogMark`, `LandingPadMark`, and the hero illustration stay pure solid-fill silhouettes (body plus four splayed leg lobes, no facial detail) simply because that's the right shape language for a leaping-body pose, not because faces are disallowed. `FrogSignal` (see "Expressive states" below) is the face-forward counterpart, used wherever the frog is standing still and expressing a state rather than mid-leap.
 
 ## Motion language
 
@@ -55,8 +89,10 @@ Nothing in the product UI (buttons, forms, plan cards) animates as part of this 
 ```
 components/brand/
   primitives.tsx      FrogMark, LilyPad, RippleRing, RouteArc, Waypoint, WaterDrop
-  LandingPadMark.tsx   Primary combination mark (header glyph)
+  LandingPadMark.tsx   Primary combination mark (unused in-app since FrogSignal
+                       replaced it in the header; kept for any external reference)
   HeroLanding.tsx      Recovery-start hero illustration
+  FrogSignal.tsx       Expressive status signal — sad/neutral/happy face on a ring
 components/icons/
   index.tsx            ProductIcon — the 13-name product icon family
 app/icon.svg            App icon / favicon (Next.js icon file convention)
@@ -70,12 +106,12 @@ app/icon.svg            App icon / favicon (Next.js icon file convention)
 
 | Screen | Application |
 |---|---|
-| All screens (header) | `LandingPadMark` replaces the previous generic plane/spark glyph in `.lp-brand-mark`. |
-| Start | `HeroLanding` illustration above the eyebrow line. |
+| All screens (header) | `FrogSignal` in `.lp-brand-mark`, state derived from step progress: `sad` on Tell Us, `neutral` on Confirm, `happy` from Search through Handoff. |
+| Start | `HeroLanding` illustration above the eyebrow line; `FrogSignal state="neutral"` on the voice button while connecting; `FrogSignal state="sad"` next to the notice on voice failure/mic-denied. |
 | Confirm | `user-confirmed` icon on the "Confirmed by you" badge. |
-| Search | Each of the 5 progress rows gets a vendor-matched `ProductIcon` (hotel, evidence-source, user-confirmed, historical-aviation-data, flight-disruption). |
+| Search | `FrogSignal state="neutral"` in the loading orbit; each of the 5 progress rows keeps its vendor-matched `ProductIcon` (hotel, evidence-source, user-confirmed, historical-aviation-data, flight-disruption). |
 | Compare | `historical-aviation-data` icon on the AeroXplorer badge and the flight-recovery historical-context line; `time-pressure`/`budget`/`room` icons distinguish the three plan cards (fastest/best-value/best-rest). |
-| Handoff | `recovery-completed` icon (lily pad + check) replaces the generic checkmark in the success mark. |
+| Handoff | `FrogSignal state="happy"` replaces the previous `recovery-completed` glyph in the success mark. |
 
 ## Accessibility
 
@@ -86,4 +122,6 @@ app/icon.svg            App icon / favicon (Next.js icon file convention)
 
 ## What's intentionally out of scope
 
-Per-currency or per-locale icon variants, a second color theme, and animated icon states beyond the single hero illustration were not built — none were requested, and adding them now would be speculative. If a future request needs them, extend `components/icons/index.tsx` and this document together so they stay in sync.
+Per-currency or per-locale icon variants, a separate dark theme (the system is now single-theme, light, per the current grayscale-plus-teal direction), and animated icon states beyond the single hero illustration were not built — none were requested, and adding them now would be speculative. If a future request needs them, extend `components/icons/index.tsx` and this document together so they stay in sync.
+
+The `HeroLanding` illustration and the 13-name `ProductIcon` family were **not** rebuilt around the expressive-face treatment — they stay pure silhouette (now re-colored via the token aliases described above, but structurally unchanged), since a leaping-body pose and a small product glyph aren't the contexts a face reads well in. `FrogSignal` covers every place the frog is standing still and signaling a state. Giving the hero illustration or individual `ProductIcon`s a face too would be a separate, larger follow-up if wanted.

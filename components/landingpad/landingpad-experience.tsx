@@ -20,8 +20,8 @@ import {
 import type { RecoveryPlan } from "@/schemas/recovery-plan";
 import type { StayOption } from "@/schemas/stay-option";
 import type { TripRequest } from "@/schemas/trip-request";
-import { LandingPadMark } from "@/components/brand/LandingPadMark";
 import { HeroLanding } from "@/components/brand/HeroLanding";
+import { FrogSignal, type FrogSignalState } from "@/components/brand/FrogSignal";
 import { ProductIcon, type ProductIconName } from "@/components/icons";
 
 type Step = "start" | "brief" | "search" | "compare" | "handoff";
@@ -205,6 +205,10 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const voiceUIState = deriveVoiceUIState({ isRequestingMic, micPermission, status: conversation.status });
 
   const activeIndex = ["start", "brief", "search", "compare", "handoff"].indexOf(step);
+  // Header mark tracks the disrupted -> recovering -> landed metaphor: sad
+  // while the disruption is still being described, neutral while confirming,
+  // happy from the moment a search is underway through to handoff.
+  const headerFrogState: FrogSignalState = activeIndex <= 0 ? "sad" : activeIndex === 1 ? "neutral" : "happy";
   const steps = isEvent ? eventSteps : recoverySteps;
   const summary = handoffResult?.summary ?? fallbackSummary;
 
@@ -484,7 +488,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     <main className="lp-shell">
       <header className="lp-header">
         <button className="lp-brand" onClick={reset} aria-label="Reset and return home">
-          <span className="lp-brand-mark"><LandingPadMark size={18} /></span>
+          <span className="lp-brand-mark"><FrogSignal size={24} state={headerFrogState} /></span>
           <span>{isEvent ? "EventStay" : "LandingPad"}</span>
         </button>
         <div className="lp-mode-pill"><span /> {isEvent ? "Event planning" : "Recovery mode"}</div>
@@ -529,7 +533,13 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
                 onClick={startVoice}
                 disabled={voiceUIState === "connecting" || voiceUIState === "requesting-mic"}
               >
-                <span><Icon name="mic" /></span>
+                <span>
+                  {voiceUIState === "connecting" || voiceUIState === "requesting-mic" ? (
+                    <FrogSignal size={22} state="neutral" />
+                  ) : (
+                    <Icon name="mic" />
+                  )}
+                </span>
                 <strong>
                   {voiceUIState === "requesting-mic"
                     ? "Requesting microphone…"
@@ -557,7 +567,14 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
                 {isBuildingBrief ? "Building your brief…" : <>Build my brief <Icon name="arrow" /></>}
               </button>
             </label>
-            {notice && <div className={`lp-notice ${voiceUIState === "failed" || voiceUIState === "mic-denied" ? "is-error" : ""}`}>{notice}</div>}
+            {notice && (
+              <div className={`lp-notice ${voiceUIState === "failed" || voiceUIState === "mic-denied" ? "is-error" : ""}`}>
+                {(voiceUIState === "failed" || voiceUIState === "mic-denied") && (
+                  <FrogSignal size={16} state="sad" className="lp-notice-signal" />
+                )}
+                {notice}
+              </div>
+            )}
             <p className="lp-approval-note"><Icon name="shield" /> Nothing is booked or purchased without your explicit approval.</p>
           </div>
         )}
@@ -608,7 +625,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 
         {step === "search" && (
           <div className="lp-search-panel">
-            <div className="lp-orbit"><span /><Icon name="spark" /></div>
+            <div className="lp-orbit"><span /><FrogSignal size={26} state="neutral" /></div>
             <span className="lp-kicker">Building your three options</span>
             <h1>{isEvent ? "Matching stays to the moment" : "Finding the clearest way forward"}</h1>
             <div className="lp-search-list">
@@ -679,7 +696,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
 
         {step === "handoff" && selected && (
           <div className="lp-panel lp-handoff">
-            <div className="lp-success-mark"><ProductIcon name="recovery-completed" size={25} /></div>
+            <div className="lp-success-mark"><FrogSignal size={26} state="happy" /></div>
             <span className="lp-kicker">Advisor-ready</span>
             <h1>Your next move is clear.</h1>
             <p>Share this summary with a travel advisor or keep it for the supplier checkout.</p>
