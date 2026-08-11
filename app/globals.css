@@ -1,36 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  /* Structure — dark, muted background per brand usage guideline ("use on
-     dark or muted backgrounds for best contrast"). Card/panel radius and
-     shadow follow shadcn/ui conventions: a consistent ~12px scale and a
-     single subtle elevation shadow instead of large soft colored ones. */
-  --ink: #eef4ec;
-  --muted: #94a89a;
-  --paper: #141c17;
-  --white: #1f2b23;
-  --line: #33453a;
-  --line-strong: #46594c;
+  /* Structure — light grayscale ground per the 60-30-10 method: 60% neutral
+     surface, 30% ink/border. Card/panel radius and shadow follow shadcn/ui
+     conventions: a consistent ~12px scale and a single subtle elevation
+     shadow instead of large soft colored ones. */
+  --ink: #18181b;
+  --muted: #71717a;
+  --paper: #fafafa;
+  --white: #ffffff;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 1px rgba(0,0,0,.25);
-  --shadow-md: 0 8px 24px rgba(0,0,0,.4);
+  --shadow-sm: 0 1px 2px rgba(24,24,27,.05), 0 1px 1px rgba(24,24,27,.03);
+  --shadow-md: 0 8px 24px rgba(24,24,27,.07);
 
-  /* Marine blue — deliberately overrides the brand asset's own "Primary
-     color: Frog Green #A6E673" mandate. Decided by direct comparison
-     against a green-accent preview: blue is the more conventional read for
-     a travel/flight product, at the cost of severing continuity with the
-     pond-water brand. Everything else about the system (grayscale
-     structure, shadcn conventions, the FrogSignal icon construction) is
-     unchanged — only this one token's value moved. --accent-ink is the
-     dark foreground used for content sitting on an --accent fill, since
-     the accent itself is light. --teal/--lime/--lime-dark are kept as
-     aliases so existing brand illustration files (HeroLanding.tsx) that
-     reference them by name need no changes. */
-  --accent: #6fb0e0;
-  --accent-dark: #4a8fc2;
-  --accent-ink: #082036;
-  --accent-wash: #142a3b;
+  /* Teal — the system's single accent (10%), kept for continuity with the
+     original pond-water brand, desaturated and restricted to primary
+     buttons, focus states, and the "live" badge only. --accent-ink is white
+     here (unlike the blue/green accents tried earlier) because this teal is
+     dark enough to carry white foreground text directly. --teal/--lime/
+     --lime-dark are kept as aliases so existing brand illustration files
+     (HeroLanding.tsx) that reference them by name need no changes. */
+  --accent: #0f6f63;
+  --accent-dark: #0b5850;
+  --accent-ink: #ffffff;
+  --accent-wash: #e7f1ef;
   --teal: var(--accent);
   --lime: var(--accent);
   --lime-dark: var(--accent-dark);
@@ -39,14 +35,14 @@
      the accent, per rule 16 (default grayscale, color only where meaningful).
      Every caution/unverified/error surface in the app uses this single pair
      rather than a separate hue per context. */
-  --coral: #f0876f;
-  --coral-dark: #ffb49e;
-  --caution-wash: #2a1712;
+  --coral: #e8654a;
+  --coral-dark: #b23b2a;
+  --caution-wash: #fdeeea;
 
   /* Brand extension — frog-on-lily-pad motifs (see docs/brand-guidelines.md).
      --pond/--pond-ring are backgrounds and linework only, never body text. */
-  --pond: #16211a;
-  --pond-ring: #4c6b57;
+  --pond: #e7f1ef;
+  --pond-ring: #9fc9bd;
 }
 
 * { box-sizing: border-box; }
@@ -108,7 +104,7 @@ h1, h2, p { margin-top: 0; }
 .lp-start h1, .lp-section-heading h1, .lp-search-panel h1, .lp-handoff h1 { font-size: clamp(34px,5vw,56px); line-height: 1.02; letter-spacing: -.045em; margin: 18px 0; font-weight: 750; }
 .lp-lede { max-width: 600px; margin: 0 auto 34px; color: var(--muted); font-size: clamp(16px,2vw,20px); line-height: 1.55; }
 .lp-voice { width: min(430px,100%); min-height: 94px; margin: 0 auto; padding: 17px 24px; display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto; text-align: left; align-items: center; column-gap: 15px; border: 1px solid var(--accent-dark); border-radius: var(--radius); color: var(--accent-ink); background: var(--accent); cursor: pointer; box-shadow: var(--shadow-md); transition: transform .15s ease, box-shadow .15s ease; }
-.lp-voice:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.4); }
+.lp-voice:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(15,111,99,.28); }
 .lp-voice > span { width: 48px; height: 48px; grid-row: 1 / 3; display: grid; place-items: center; border-radius: 50%; color: var(--accent-ink); background: rgba(11,20,12,.14); }
 .lp-voice svg { width: 22px; }
 .lp-voice strong { font-size: 17px; }
@@ -132,7 +128,7 @@ h1, h2, p { margin-top: 0; }
 .lp-secondary.compact { min-height: 38px; white-space: nowrap; }
 .lp-notice { margin: 16px 0; padding: 12px 15px; display: flex; align-items: flex-start; gap: 8px; border-radius: var(--radius-sm); border: 1px solid var(--line); color: var(--ink); background: var(--white); text-align: left; font-size: 13px; }
 .lp-notice-signal { flex-shrink: 0; margin-top: 1px; }
-.lp-notice.is-error { color: var(--coral-dark); background: #241512; border-color: #3a2019; }
+.lp-notice.is-error { color: var(--coral-dark); background: var(--caution-wash); border-color: #f3cabd; }
 .lp-approval-note { margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 7px; color: var(--muted); font-size: 12px; }
 .lp-approval-note svg { width: 16px; color: var(--accent); }
 .lp-panel { width: min(920px,100%); margin: 0 auto; padding: clamp(24px,4vw,48px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow-md); }
@@ -192,7 +188,7 @@ h1, h2, p { margin-top: 0; }
 /* Positive/confirmed state — same shape as .lp-uncertainties, reuses the
    accent-on-wash pairing (.lp-source-badge.user) instead of the caution
    color, so "Confirmed facts" doesn't read as a warning. */
-.lp-uncertainties.is-good { border-color: #16281c; }
+.lp-uncertainties.is-good { border-color: #cde5df; }
 .lp-uncertainties.is-good span { color: var(--accent); background: var(--accent-wash); }
 
 /* Small inline status chip for system-status sentences that were previously
@@ -243,7 +239,7 @@ h1, h2, p { margin-top: 0; }
 /* Same caution language as .lp-evidence li.is-caution / .lp-status-chip —
    used when the tradeoff restates an already-flagged unverified fact, so the
    two mentions read as one consistent signal instead of two neutral boxes. */
-.lp-tradeoff.is-caution { border-color: #3a2019; background: var(--caution-wash); }
+.lp-tradeoff.is-caution { border-color: #f3cabd; background: var(--caution-wash); }
 .lp-tradeoff.is-caution strong { color: var(--coral-dark); }
 .lp-tradeoff.is-caution p { color: var(--coral-dark); }
 .lp-context-link, .lp-context-empty { margin: 13px 0; font-size: 10px; color: var(--accent); }
@@ -251,7 +247,7 @@ h1, h2, p { margin-top: 0; }
 .lp-plan-card .lp-primary { width: 100%; }
 .lp-data-note { max-width: 720px; margin: 22px auto 0; color: var(--muted); text-align: center; font-size: 11px; }
 .lp-empty-state { max-width: 650px; margin: 20px auto; padding: clamp(28px,5vw,52px); border: 1px solid var(--line); border-radius: var(--radius); text-align: center; background: var(--white); }
-.lp-empty-icon { width: 48px; height: 48px; margin: 0 auto 20px; display: grid; place-items: center; border-radius: 50%; color: var(--coral-dark); background: #2a1712; font-size: 20px; font-weight: 900; }
+.lp-empty-icon { width: 48px; height: 48px; margin: 0 auto 20px; display: grid; place-items: center; border-radius: 50%; color: var(--coral-dark); background: var(--caution-wash); font-size: 20px; font-weight: 900; }
 .lp-empty-state h2 { margin: 10px 0; font-size: 26px; letter-spacing: -.02em; }
 .lp-empty-state > p { color: var(--muted); line-height: 1.55; }
 .lp-relaxations { margin-top: 22px; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }

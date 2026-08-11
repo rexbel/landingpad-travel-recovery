@@ -22,7 +22,7 @@ Clip art, emoji, photorealistic textures, jungle/pond scenery as literal backgro
 
 | State | Construction | Meaning |
 |---|---|---|
-| `sad` | Head fill matches `--paper` (reads as a dark silhouette), accent-colored outline/eyes/frown | Disrupted — no landing point yet. |
+| `sad` | Head fill matches `--paper` (reads as a page-colored cutout), accent-colored outline/eyes/frown | Disrupted — no landing point yet. |
 | `neutral` | Unfilled head, `currentColor` outline/eyes, no mouth | Recovering — in progress, arcing toward a landing. |
 | `happy` | Solid `--accent` fill, dark (`--accent-ink`) eyes and smile | Landed — settled, confirmed. |
 
@@ -32,26 +32,26 @@ Clip art, emoji, photorealistic textures, jungle/pond scenery as literal backgro
 
 Rule 16 (default to grayscale, apply the 60-30-10 method, deviate only where it conflicts with brand-asset recommendations) governs the whole system. In 60-30-10 terms: **60%** page/surface grayscale, **30%** ink/border grayscale, **10%** a single accent (plus a second, smaller semantic exception for caution/error, in line with how even mostly-monochrome systems like shadcn keep one distinct "destructive" hue).
 
-**The accent is marine blue (`#6FB0E0`), not the brand asset's mandated Frog Green (`#A6E673`).** This is a deliberate, explicit override, decided by direct side-by-side comparison against a green-accent version: blue reads as the more conventional choice for a travel/flight product, at the acknowledged cost of severing continuity with the pond-water brand the rest of this document describes. Every other part of the second-generation brand system — the grayscale structure, the shadcn conventions, the `FrogSignal` icon's construction (silhouette, dashed ring, expression states) — is unchanged; only this one token's value differs from the brand asset's own spec. The `FrogSignal` icon itself now renders in blue too, since it reads its ring/fill color from `--accent` rather than a hardcoded green.
+**The accent is a desaturated pond-teal (`#0F6F63`), not the brand asset's mandated Frog Green (`#A6E673`) or the marine blue tried in an earlier pass.** This is the current, deliberate choice: a light grayscale ground (60% `#FAFAFA`/`#FFFFFF`, 30% `#18181B` ink / `#71717A` muted / `#E4E4E7` borders) with teal kept as the single 10% accent for brand continuity with the pond-water identity, restricted to primary buttons, focus states, and the "live" badge only — not spread across every colored surface. Every other part of the brand system — the shadcn conventions, the `FrogSignal` icon's construction (silhouette, dashed ring, expression states) — is unchanged; only the palette's lightness and accent hue differ from the earlier dark/blue pass. The `FrogSignal` icon renders in teal, reading its ring/fill color from `--accent` rather than a hardcoded value.
 
 Token *names* are unchanged from the original palette (so `HeroLanding.tsx` and every consuming CSS rule needed no edits) — only their values changed, plus `--teal`/`--lime`/`--lime-dark` now alias the new accent tokens directly:
 
 | Token | Value | Use |
 |---|---|---|
-| `--paper` | `#141c17` | Page background (60%) — dark neutral with a faint green-black cast per the usage guideline. |
-| `--white` | `#1f2b23` | Raised surface (60% family) — cards, panels, inputs. Deliberately separated from `--paper` rather than nearly matching it, so elevation reads clearly instead of flattening into one tone. |
-| `--ink` | `#eef4ec` | Primary text (30%). |
-| `--muted` | `#94a89a` | Secondary text (30% family). |
-| `--line` / `--line-strong` | `#33453a` / `#46594c` | Hairline borders (30% family), stepped further from the surfaces than the first pass so panels visibly separate from their background. |
-| `--accent` | `#6fb0e0` | Marine blue — the system's one primary/accent color (10%), overriding the brand asset's Frog Green per the decision above. Primary buttons, active/confirmed/live states, the frog mark's ring and filled states. |
-| `--accent-dark` | `#4a8fc2` | Hover/pressed variant of `--accent`. |
-| `--accent-ink` | `#082036` | Dark foreground for content sitting on an `--accent` fill (the accent itself is light). |
-| `--accent-wash` | `#142a3b` | Low-opacity accent tint for badge/ring backgrounds. |
+| `--paper` | `#fafafa` | Page background (60%) — light neutral ground. |
+| `--white` | `#ffffff` | Raised surface (60% family) — cards, panels, inputs. Distinct from `--paper` so elevation still reads as a step up, not a flat match. |
+| `--ink` | `#18181b` | Primary text (30%). |
+| `--muted` | `#71717a` | Secondary text (30% family). |
+| `--line` / `--line-strong` | `#e4e4e7` / `#d4d4d8` | Hairline borders (30% family). |
+| `--accent` | `#0f6f63` | Desaturated pond-teal — the system's one primary/accent color (10%), kept for continuity with the original brand rather than the brand asset's Frog Green or the marine blue tried earlier. Primary buttons, focus states, the "live" badge, and the frog mark's ring and filled states. |
+| `--accent-dark` | `#0b5850` | Hover/pressed variant of `--accent`. |
+| `--accent-ink` | `#ffffff` | Foreground for content sitting on an `--accent` fill — white, since this teal is dark enough to carry it directly (unlike the lighter accents tried earlier, which needed dark text). |
+| `--accent-wash` | `#e7f1ef` | Low-opacity accent tint for badge/ring backgrounds. |
 | `--teal` / `--lime` / `--lime-dark` | alias `--accent` / `--accent` / `--accent-dark` | Kept as aliases so pre-existing files that reference them by name (`HeroLanding.tsx`) render correctly under the new single-accent system without modification. |
-| `--coral` / `--coral-dark` / `--caution-wash` | `#f0876f` / `#ffb49e` / `#2a1712` | The system's one semantic exception besides the accent — every caution/unverified/error surface uses this single pair (source badges for mere provider attribution stay neutral gray; only genuine warning states get color). |
-| `--pond` / `--pond-ring` | `#16211a` / `#4c6b57` | Dark-surface wash and ripple/route linework for the hero illustration. Background/decoration only — never text. |
+| `--coral` / `--coral-dark` / `--caution-wash` | `#e8654a` / `#b23b2a` / `#fdeeea` | The system's one semantic exception besides the accent — every caution/unverified/error surface uses this single pair (source badges for mere provider attribution stay neutral gray; only genuine warning states get color). |
+| `--pond` / `--pond-ring` | `#e7f1ef` / `#9fc9bd` | Light-surface wash and ripple/route linework for the hero illustration. Background/decoration only — never text. |
 
-**Compliance boundary, stated plainly:** every *text* color pairing in the app targets WCAG AA (4.5:1) against the dark backgrounds. `--pond`/`--pond-ring` remain decorative-only tokens — never text, never the sole source of meaning — so they sit outside the 1.4.11 non-text-contrast requirement, same as before.
+**Compliance boundary, stated plainly:** every *text* color pairing in the app targets WCAG AA (4.5:1) against the light backgrounds. `--pond`/`--pond-ring` remain decorative-only tokens — never text, never the sole source of meaning — so they sit outside the 1.4.11 non-text-contrast requirement, same as before.
 
 ## Component conventions (shadcn/ui)
 
@@ -59,9 +59,9 @@ Buttons, cards, badges, inputs, and focus states follow [shadcn/ui](https://ui.s
 
 - **Radius** — a consistent two-step scale, `--radius` (12px, cards/panels/primary buttons) and `--radius-sm` (8px, compact buttons/inputs/small badges), replacing the previous per-component values (16–28px).
 - **Shadow** — `--shadow-sm`/`--shadow-md`, subtle near-black elevation shadows, replacing the previous large soft colored shadows (e.g. `0 24px 70px rgba(34,53,47,.08)`).
-- **Buttons** — `.lp-primary` (solid accent, dark foreground) and `.lp-secondary` (bordered, transparent) mirror shadcn's `default`/`outline` variants.
+- **Buttons** — `.lp-primary` (solid accent, white foreground) and `.lp-secondary` (bordered, transparent) mirror shadcn's `default`/`outline` variants.
 - **Focus rings** — every interactive element gets a crisp 2px accent-colored `outline` with `outline-offset`, replacing the previous soft `rgba` glow.
-- **Badges** — `.lp-source-badge` defaults to a neutral gray-on-dark pairing (per rule 16); only the two states that actually mean something — a confirmed/live signal — use the accent, matching shadcn's muted-background badge pattern.
+- **Badges** — `.lp-source-badge` defaults to a neutral gray-on-light pairing (per rule 16); only the two states that actually mean something — a confirmed/live signal — use the accent, matching shadcn's muted-background badge pattern.
 
 ## Shape language
 
@@ -122,6 +122,6 @@ app/icon.svg            App icon / favicon (Next.js icon file convention)
 
 ## What's intentionally out of scope
 
-Per-currency or per-locale icon variants, a light theme (the system is now single-theme, dark-only, matching the brand asset usage guideline), and animated icon states beyond the single hero illustration were not built — none were requested, and adding them now would be speculative. If a future request needs them, extend `components/icons/index.tsx` and this document together so they stay in sync.
+Per-currency or per-locale icon variants, a separate dark theme (the system is now single-theme, light, per the current grayscale-plus-teal direction), and animated icon states beyond the single hero illustration were not built — none were requested, and adding them now would be speculative. If a future request needs them, extend `components/icons/index.tsx` and this document together so they stay in sync.
 
 The `HeroLanding` illustration and the 13-name `ProductIcon` family were **not** rebuilt around the expressive-face treatment — they stay pure silhouette (now re-colored via the token aliases described above, but structurally unchanged), since a leaping-body pose and a small product glyph aren't the contexts a face reads well in. `FrogSignal` covers every place the frog is standing still and signaling a state. Giving the hero illustration or individual `ProductIcon`s a face too would be a separate, larger follow-up if wanted.

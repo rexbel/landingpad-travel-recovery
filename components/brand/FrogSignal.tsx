@@ -26,11 +26,12 @@ function svgA11yProps(props: FrogSignalProps) {
   return { "aria-hidden": true as const };
 }
 
-// Rounder, wider silhouette than a plain oval — a flatter chin and slightly
-// raised temple line reads closer to the reference frog-head construction
-// (eyes sitting up and out) than a simple circle does.
+// Traces the reference construction directly: two rounded eye-bumps at the
+// top (with a shallow dip between them, not a smooth dome) widening into a
+// single rounded body/chin below — one merged path, so it reads as one
+// silhouette with no seam whether it's filled or stroked-only (neutral).
 const HEAD_PATH =
-  "M16 8.6c4.9 0 8.8 3.5 8.8 8 0 1.7-.5 3.2-1.5 4.5-1.7 2.3-4.5 3.8-7.3 3.8s-5.6-1.5-7.3-3.8c-1-1.3-1.5-2.8-1.5-4.5 0-4.5 3.9-8 8.8-8Z";
+  "M16 9.5C14.3 8 12.2 7.5 10.5 8.3 8.2 9.4 7 11.6 7 14c0 3.3 1.7 6.2 4.5 8 1.5 1 3 1.4 4.5 1.4s3-.4 4.5-1.4c2.8-1.8 4.5-4.7 4.5-8 0-2.4-1.2-4.6-3.5-5.7-1.7-.8-3.8-.3-5.5 1.2Z";
 
 export function FrogSignal(props: FrogSignalProps) {
   const { size = 24, className, state = "neutral" } = props;
@@ -43,7 +44,7 @@ export function FrogSignal(props: FrogSignalProps) {
   const headStroke = state === "neutral" ? "currentColor" : "var(--accent)";
   const faceInk = state === "happy" ? "var(--accent-ink)" : state === "neutral" ? "currentColor" : "var(--accent)";
   const mouthPath =
-    state === "happy" ? "M11.5 18Q16 21.5 20.5 18" : state === "sad" ? "M11.5 20.5Q16 17 20.5 20.5" : null;
+    state === "happy" ? "M11.5 18.5Q16 22 20.5 18.5" : state === "sad" ? "M11.5 21Q16 17.5 20.5 21" : null;
 
   return (
     <svg
@@ -57,8 +58,8 @@ export function FrogSignal(props: FrogSignalProps) {
     >
       <circle cx="16" cy="16" r="14.5" stroke={ringColor} strokeWidth="1.6" strokeDasharray="3 3.4" />
       <path d={HEAD_PATH} fill={headFill} stroke={headStroke} strokeWidth={state === "neutral" ? 1.5 : 0} />
-      <circle cx="11.6" cy="14.6" r="1.9" fill={faceInk} />
-      <circle cx="20.4" cy="14.6" r="1.9" fill={faceInk} />
+      <circle cx="11.5" cy="11.8" r="2.3" fill={faceInk} />
+      <circle cx="20.5" cy="11.8" r="2.3" fill={faceInk} />
       {mouthPath && <path d={mouthPath} stroke={faceInk} strokeWidth="1.5" strokeLinecap="round" fill="none" />}
     </svg>
   );
