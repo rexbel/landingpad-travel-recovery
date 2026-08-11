@@ -21,7 +21,7 @@ import type { RecoveryPlan } from "@/schemas/recovery-plan";
 import type { StayOption } from "@/schemas/stay-option";
 import type { TripRequest } from "@/schemas/trip-request";
 import { HeroLanding } from "@/components/brand/HeroLanding";
-import { FrogSignal } from "@/components/brand/FrogSignal";
+import { FrogSignal, type FrogSignalState } from "@/components/brand/FrogSignal";
 import { ProductIcon, type ProductIconName } from "@/components/icons";
 
 type Step = "start" | "brief" | "search" | "compare" | "handoff";
@@ -205,6 +205,10 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
   const voiceUIState = deriveVoiceUIState({ isRequestingMic, micPermission, status: conversation.status });
 
   const activeIndex = ["start", "brief", "search", "compare", "handoff"].indexOf(step);
+  // Header mark tracks the disrupted -> recovering -> landed metaphor: sad
+  // while the disruption is still being described, neutral while confirming,
+  // happy from the moment a search is underway through to handoff.
+  const headerFrogState: FrogSignalState = activeIndex <= 0 ? "sad" : activeIndex === 1 ? "neutral" : "happy";
   const steps = isEvent ? eventSteps : recoverySteps;
   const summary = handoffResult?.summary ?? fallbackSummary;
 
@@ -484,7 +488,7 @@ function LandingPadExperienceInner({ mode }: { mode: ProductMode }) {
     <main className="lp-shell">
       <header className="lp-header">
         <button className="lp-brand" onClick={reset} aria-label="Reset and return home">
-          <span className="lp-brand-mark"><FrogSignal size={20} state="happy" /></span>
+          <span className="lp-brand-mark"><FrogSignal size={24} state={headerFrogState} /></span>
           <span>{isEvent ? "EventStay" : "LandingPad"}</span>
         </button>
         <div className="lp-mode-pill"><span /> {isEvent ? "Event planning" : "Recovery mode"}</div>
