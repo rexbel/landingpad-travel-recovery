@@ -68,47 +68,6 @@ export function LilyPad(props: BrandPrimitiveProps) {
   );
 }
 
-/** Concentric rings expanding from a landing point. */
-export function RippleRing(props: BrandPrimitiveProps & { rings?: number }) {
-  const { size = 24, className, color = "currentColor", rings = 3 } = props;
-  const radii = Array.from({ length: rings }, (_, i) => 5 + i * (11 / Math.max(rings - 1, 1)));
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      {...svgA11yProps(props)}
-    >
-      {radii.map((r, i) => (
-        <circle key={r} cx="16" cy="16" r={r} stroke={color} strokeWidth={1.6} opacity={1 - i * (0.55 / rings)} />
-      ))}
-    </svg>
-  );
-}
-
-/** A single arcing path with a terminal waypoint dot — a recovery route. */
-export function RouteArc(props: BrandPrimitiveProps) {
-  const { size = 24, className, color = "currentColor" } = props;
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      {...svgA11yProps(props)}
-    >
-      <path d="M5 22c3-9 12-15 22-13" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeDasharray="1 5.5" />
-      <circle cx="5" cy="22" r="2.1" fill={color} />
-      <circle cx="27" cy="9" r="2.1" fill={color} />
-    </svg>
-  );
-}
-
 /** A pin-style marker — ringed dot — for airports and named locations. */
 export function Waypoint(props: BrandPrimitiveProps) {
   const { size = 24, className, color = "currentColor" } = props;

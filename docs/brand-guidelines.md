@@ -66,8 +66,7 @@ Buttons, cards, badges, inputs, and focus states follow [shadcn/ui](https://ui.s
 ## Shape language
 
 - **Lily-pad circles** — rounded containers throughout the app (`.lp-panel`, `.lp-plan-card`, `.lp-flight-card`) already use this language; the brand system extends it rather than introducing a new container shape.
-- **Ripple rings** — concentric circles (`RippleRing` primitive), used for "arrival" moments (hero illustration, recovery-completed icon).
-- **Arc paths** — a single dashed arc with a start/end waypoint dot (`RouteArc` primitive), standing in for "the route so far," used in the hero illustration and the advisor-handoff icon.
+- **Arc paths** — a single dashed arc with a start/end waypoint dot, standing in for "the route so far." Used in the `advisor-handoff` product icon (hand-coded inline there, not via a shared primitive — `primitives.tsx` no longer exports a `RouteArc`; it had no consumers).
 - **Waypoint** — a ringed dot, for airports and named locations.
 - **Water-drop** — a single teardrop accent, used sparingly (never as a repeated pattern/texture).
 - **Frog silhouette** — `FrogMark`, `LandingPadMark`, and the hero illustration stay pure solid-fill silhouettes (body plus four splayed leg lobes, no facial detail) simply because that's the right shape language for a leaping-body pose, not because faces are disallowed. `FrogSignal` (see "Expressive states" below) is the face-forward counterpart, used wherever the frog is standing still and expressing a state rather than mid-leap.
@@ -88,7 +87,7 @@ Nothing in the product UI (buttons, forms, plan cards) animates as part of this 
 
 ```
 components/brand/
-  primitives.tsx      FrogMark, LilyPad, RippleRing, RouteArc, Waypoint, WaterDrop
+  primitives.tsx      FrogMark, LilyPad, Waypoint, WaterDrop
   LandingPadMark.tsx   Primary combination mark (unused in-app since FrogSignal
                        replaced it in the header; kept for any external reference)
   HeroLanding.tsx      Recovery-start hero illustration
@@ -98,7 +97,7 @@ components/icons/
 app/icon.svg            App icon / favicon (Next.js icon file convention)
 ```
 
-`components/brand/primitives.tsx` exports raw shape building blocks used to compose `LandingPadMark` and `HeroLanding`. `components/icons/index.tsx` exports a single `ProductIcon` component keyed by name — the same pattern the app's existing local `Icon` component (UI chrome: mic, arrow, check, copy) already follows, so the two icon sets sit side by side without competing conventions. `ProductIcon` names: `flight-disruption`, `airport`, `hotel`, `ground-transport`, `budget`, `travelers`, `room`, `time-pressure`, `advisor-handoff`, `evidence-source`, `user-confirmed`, `historical-aviation-data`, `recovery-completed`.
+`components/brand/primitives.tsx` exports raw shape building blocks; `FrogMark` is used by `LandingPadMark`. It previously also exported `RippleRing` and `RouteArc`, built for early hero-illustration concepts — neither ever ended up with a consumer (`HeroLanding` and the product icons that use similar shapes, like `advisor-handoff`'s arc, always hand-coded their own inline SVG rather than importing them), so both were removed. `components/icons/index.tsx` exports a single `ProductIcon` component keyed by name — the same pattern the app's existing local `Icon` component (UI chrome: mic, arrow, check, copy) already follows, so the two icon sets sit side by side without competing conventions. `ProductIcon` names: `flight-disruption`, `airport`, `hotel`, `ground-transport`, `budget`, `travelers`, `room`, `time-pressure`, `advisor-handoff`, `evidence-source`, `user-confirmed`, `historical-aviation-data`, `recovery-completed`.
 
 `historical-aviation-data` is the AeroXplorer-specific treatment — a plane silhouette inside a dashed orbit ring (evoking "circling back through history"), visually distinct from the plain `flight-disruption` glyph used for the broken original flight.
 
